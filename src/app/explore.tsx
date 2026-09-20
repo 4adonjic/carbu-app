@@ -1,13 +1,48 @@
 import { usePalette } from '@/constants/palette';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { File, Paths } from 'expo-file-system';
+import * as LegacyFS from 'expo-file-system/legacy';
+import * as Sharing from 'expo-sharing';
 import { useEffect, useState } from 'react';
-import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Alert, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 
 const CLE = 'carnet_pleins';
 
 type Plein = { id: string; date: string; litres: number; prix: number; km: number };
 
 const num = (t: string) => parseFloat(t.replace(',', '.')) || 0;
+
+// Format français : virgule pour les décimales
+const fmt = (n: number | null, d: number) => (n === null ? '' : n.toFixed(d).replace('.', ','));
+
+// Android : enregistre le fichier dans un dossier choisi (ex : Téléchargements)
+// Renvoie true si le fichier a été enregistré, false si l'utilisateur a annulé
+async function telechargerAndroid(csv: string, nom: string): Promise<boolean> {
+  const SAF = LegacyFS.StorageAccessFramework;
+  const dossierDepart = SAF.getUriForDirectoryInRoot('Download');
+  const permission = await SAF.requestDirectoryPermissionsAsync(dossierDepart);
+  if (!permission.granted) return false;
+
+  const uri = await SAF.createFileAsync(permission.directoryUri, nom, 'text/csv');
+  await LegacyFS.writeAsStringAsync(uri, csv);
+  return true;
+}
+
+// Autre méthode (iPhone, ou si le téléchargement échoue) : menu de partage
+async function partager(csv: string, nom: string) {
+  const file = new File(Paths.cache, `${nom}.csv`);
+  file.create({ overwrite: true });
+  await file.write(csv);
+  if (await Sharing.isAvailableAsync()) {
+    await Sharing.shareAsync(file.uri, {
+      mimeType: 'text/csv',
+      dialogTitle: 'Frais de carburant',
+      UTI: 'public.comma-separated-values-text',
+    });
+  } else {
+    Alert.alert('Export', "Le partage n'est pas disponible sur cet appareil.");
+  }
+}
 
 export default function CarnetScreen() {
   const c = usePalette();
@@ -83,6 +118,54 @@ export default function CarnetScreen() {
   const totalKm = avecCout.reduce((s, d) => s + d.kmParcourus, 0);
   const coutKmMoyen = totalKm > 0 ? totalPrix / totalKm : null;
 
+  // Export : crée un fichier .csv (séparateur ;) qui s'ouvre dans Excel ou Sheets
+  async function exporter() {
+    if (details.length === 0) {
+      Alert.alert('Export', 'Aucun plein à exporter pour le moment.');
+      return;
+    }
+    const entete = 'Date;Kilométrage;Litres;Prix total (€);Km parcourus;Conso (L/100km);Coût (€/km)';
+    const lignes = [...details].reverse().map((d) =>
+      [
+        new Date(d.date).toLocaleDateString('fr-FR'),
+        fmt(d.km, 0),
+        fmt(d.litres, 2),
+        fmt(d.prix, 2),
+        d.kmParcourus > 0 ? fmt(d.kmParcourus, 0) : '',
+        fmt(d.conso, 1),
+        fmt(d.coutKm, 3),
+      ].join(';')
+    );
+    const total = `Total;;${fmt(
+      pleins.reduce((s, p) => s + p.litres, 0),
+      2
+    )};${fmt(
+      pleins.reduce((s, p) => s + p.prix, 0),
+      2
+    )};;;`;
+
+    // Le caractère \uFEFF au début permet à Excel d'afficher correctement les accents
+    const csv = '\uFEFF' + [entete, ...lignes, total].join('\n');
+    const nom = `frais-carburant-${new Date().toISOString().slice(0, 10)}`;
+
+    try {
+      if (Platform.OS === 'android') {
+        try {
+          const ok = await telechargerAndroid(csv, nom);
+          if (ok) Alert.alert('Export', 'Fichier enregistré dans le dossier choisi.');
+          return;
+        } catch (e) {
+          console.error(e);
+          // Si le téléchargement échoue, on passe par le menu de partage
+        }
+      }
+      await partager(csv, nom);
+    } catch (e) {
+      console.error(e);
+      Alert.alert('Export', "Impossible de créer le fichier.");
+    }
+  }
+
   const inputStyle = {
     backgroundColor: c.champ,
     color: c.texte,
@@ -99,9 +182,28 @@ export default function CarnetScreen() {
       contentContainerStyle={{ padding: 16, paddingTop: 70, paddingBottom: 120 }}
       keyboardShouldPersistTaps="handled"
     >
-      <Text style={{ color: c.texte, fontSize: 26, fontWeight: 'bold', marginBottom: 16 }}>
-        Carnet de pleins
-      </Text>
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          marginBottom: 16,
+        }}
+      >
+        <Text style={{ color: c.texte, fontSize: 26, fontWeight: 'bold' }}>Carnet de pleins</Text>
+        <Pressable
+          onPress={exporter}
+          style={{
+            borderWidth: 2,
+            borderColor: c.orange,
+            paddingVertical: 6,
+            paddingHorizontal: 14,
+            borderRadius: 20,
+          }}
+        >
+          <Text style={{ color: c.orange, fontWeight: 'bold' }}>Exporter</Text>
+        </Pressable>
+      </View>
 
       <View style={{ flexDirection: 'row', gap: 10, marginBottom: 20 }}>
         <View
