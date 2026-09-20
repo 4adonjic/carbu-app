@@ -1,6 +1,7 @@
 import * as Location from 'expo-location';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, Text, TextInput, View } from 'react-native';
+import { WebView } from 'react-native-webview';
 
 const CARBURANTS = [
   { label: 'Gazole', champ: 'gazole_prix' },
@@ -21,6 +22,55 @@ function distanceKm(lat1: number, lon1: number, lat2: number, lon2: number) {
     Math.sin(dLat / 2) ** 2 +
     Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+// Fabrique la page web de la carte (OpenStreetMap + Leaflet)
+function makeMapHtml(
+  position: { lat: number; lon: number },
+  markers: { lat: number; lon: number; ville: string; prix: number; best: boolean }[]
+) {
+  const data = JSON.stringify({ position, markers }).replace(/</g, '\\u003c');
+  return `<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<style>
+  html, body, #map { height: 100%; margin: 0; background: #111; }
+</style>
+</head>
+<body>
+<div id="map"></div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+  const data = ${data};
+  const map = L.map('map', { zoomControl: false });
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 18,
+    attribution: '© OpenStreetMap'
+  }).addTo(map);
+
+  const points = [[data.position.lat, data.position.lon]];
+
+  L.circleMarker([data.position.lat, data.position.lon], {
+    radius: 8, color: 'white', weight: 3, fillColor: '#3b82f6', fillOpacity: 1
+  }).addTo(map).bindPopup('Toi');
+
+  data.markers.forEach(function (m) {
+    points.push([m.lat, m.lon]);
+    L.circleMarker([m.lat, m.lon], {
+      radius: m.best ? 10 : 7,
+      color: 'white',
+      weight: 2,
+      fillColor: m.best ? '#22c55e' : '#ef4444',
+      fillOpacity: 1
+    }).addTo(map).bindPopup(m.ville + ' : ' + m.prix + ' €/L');
+  });
+
+  map.fitBounds(points, { padding: [20, 20] });
+</script>
+</body>
+</html>`;
 }
 
 export default function HomeScreen() {
@@ -104,6 +154,20 @@ export default function HomeScreen() {
     })
     .sort((a, b) => a.coutTotal - b.coutTotal);
 
+  const mapHtml =
+    position && liste.length > 0
+      ? makeMapHtml(
+          position,
+          liste.slice(0, 10).map((s, i) => ({
+            lat: s.geom.lat,
+            lon: s.geom.lon,
+            ville: s.ville,
+            prix: s.prix,
+            best: i === 0,
+          }))
+        )
+      : null;
+
   const inputStyle = {
     backgroundColor: '#333',
     color: 'white',
@@ -156,6 +220,17 @@ export default function HomeScreen() {
         />
         <Text style={{ color: '#ccc' }}>L</Text>
       </View>
+
+      {mapHtml && (
+        <View style={{ height: 200, marginTop: 12 }}>
+          <WebView
+            key={carburant.champ + consoTxt + litresTxt}
+            originWhitelist={['*']}
+            source={{ html: mapHtml }}
+            style={{ backgroundColor: '#111' }}
+          />
+        </View>
+      )}
 
       {loading ? (
         <ActivityIndicator style={{ marginTop: 40 }} />
