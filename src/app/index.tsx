@@ -1,6 +1,6 @@
 import * as Location from 'expo-location';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, Text, View } from 'react-native';
+import { ActivityIndicator, FlatList, Pressable, Text, TextInput, View } from 'react-native';
 
 const CARBURANTS = [
   { label: 'Gazole', champ: 'gazole_prix' },
@@ -8,6 +8,9 @@ const CARBURANTS = [
   { label: 'SP98', champ: 'sp98_prix' },
   { label: 'SP95', champ: 'sp95_prix' },
 ];
+
+// La distance calculée est à vol d'oiseau, la route est plus longue : on multiplie par 1.3
+const ROUTE_FACTOR = 1.3;
 
 function distanceKm(lat1: number, lon1: number, lat2: number, lon2: number) {
   const R = 6371;
@@ -26,6 +29,8 @@ export default function HomeScreen() {
   const [message, setMessage] = useState('');
   const [carburant, setCarburant] = useState(CARBURANTS[0]);
   const [position, setPosition] = useState<{ lat: number; lon: number } | null>(null);
+  const [consoTxt, setConsoTxt] = useState('6');
+  const [litresTxt, setLitresTxt] = useState('40');
 
   // Étape A : récupérer ta position (une seule fois)
   useEffect(() => {
@@ -70,8 +75,7 @@ export default function HomeScreen() {
           .map((s: any) => ({
             ...s,
             distance: distanceKm(lat, lon, s.geom.lat, s.geom.lon),
-          }))
-          .sort((a: any, b: any) => a.distance - b.distance);
+          }));
 
         setStations(list);
         if (list.length === 0) {
@@ -86,6 +90,29 @@ export default function HomeScreen() {
     }
     load();
   }, [position, carburant]);
+
+  // Étape C : calculer le vrai coût de chaque station
+  const conso = parseFloat(consoTxt.replace(',', '.')) || 0;
+  const litres = parseFloat(litresTxt.replace(',', '.')) || 0;
+
+  const liste = stations
+    .map((s) => {
+      const prix = s[carburant.champ];
+      const coutPlein = litres * prix;
+      const coutTrajet = s.distance * 2 * ROUTE_FACTOR * (conso / 100) * prix;
+      return { ...s, prix, coutTotal: coutPlein + coutTrajet };
+    })
+    .sort((a, b) => a.coutTotal - b.coutTotal);
+
+  const inputStyle = {
+    backgroundColor: '#333',
+    color: 'white',
+    borderRadius: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    width: 70,
+    textAlign: 'center' as const,
+  };
 
   return (
     <View style={{ flex: 1, backgroundColor: '#111', paddingTop: 60 }}>
@@ -111,6 +138,25 @@ export default function HomeScreen() {
         })}
       </View>
 
+      <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, gap: 8 }}>
+        <Text style={{ color: '#ccc' }}>Conso</Text>
+        <TextInput
+          style={inputStyle}
+          value={consoTxt}
+          onChangeText={setConsoTxt}
+          keyboardType="numeric"
+        />
+        <Text style={{ color: '#ccc' }}>L/100km</Text>
+        <Text style={{ color: '#ccc', marginLeft: 12 }}>Plein</Text>
+        <TextInput
+          style={inputStyle}
+          value={litresTxt}
+          onChangeText={setLitresTxt}
+          keyboardType="numeric"
+        />
+        <Text style={{ color: '#ccc' }}>L</Text>
+      </View>
+
       {loading ? (
         <ActivityIndicator style={{ marginTop: 40 }} />
       ) : message ? (
@@ -119,7 +165,8 @@ export default function HomeScreen() {
         </Text>
       ) : (
         <FlatList
-          data={stations}
+          style={{ marginTop: 12 }}
+          data={liste}
           keyExtractor={(s) => String(s.id)}
           renderItem={({ item, index }) => (
             <View
@@ -132,14 +179,17 @@ export default function HomeScreen() {
             >
               {index === 0 && (
                 <Text style={{ color: '#facc15', fontWeight: 'bold', marginBottom: 4 }}>
-                  LA PLUS PROCHE
+                  MEILLEUR CHOIX
                 </Text>
               )}
               <Text style={{ fontWeight: 'bold', color: 'white', fontSize: 18 }}>{item.ville}</Text>
               <Text style={{ color: '#ccc' }}>{item.adresse}</Text>
               <Text style={{ color: '#93c5fd' }}>{item.distance.toFixed(1)} km</Text>
               <Text style={{ color: '#4ade80', fontSize: 16 }}>
-                {carburant.label} : {item[carburant.champ]} €/L
+                {carburant.label} : {item.prix} €/L
+              </Text>
+              <Text style={{ color: '#facc15', fontSize: 16 }}>
+                Coût total (plein + trajet) : {item.coutTotal.toFixed(2)} €
               </Text>
             </View>
           )}
