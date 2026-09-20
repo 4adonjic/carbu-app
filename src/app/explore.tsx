@@ -1,180 +1,197 @@
-import { Image } from 'expo-image';
-import { SymbolView } from 'expo-symbols';
-import { Platform, Pressable, ScrollView, StyleSheet } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useEffect, useState } from 'react';
+import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 
-import { ExternalLink } from '@/components/external-link';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Collapsible } from '@/components/ui/collapsible';
-import { WebBadge } from '@/components/web-badge';
-import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
-import { useTheme } from '@/hooks/use-theme';
+const CLE = 'carnet_pleins';
 
-export default function TabTwoScreen() {
-  const safeAreaInsets = useSafeAreaInsets();
-  const insets = {
-    ...safeAreaInsets,
-    bottom: safeAreaInsets.bottom + BottomTabInset + Spacing.three,
+type Plein = { id: string; date: string; litres: number; prix: number; km: number };
+
+const num = (t: string) => parseFloat(t.replace(',', '.')) || 0;
+
+export default function CarnetScreen() {
+  const [pleins, setPleins] = useState<Plein[]>([]);
+  const [litresTxt, setLitresTxt] = useState('');
+  const [prixTxt, setPrixTxt] = useState('');
+  const [kmTxt, setKmTxt] = useState('');
+  const [charge, setCharge] = useState(false);
+
+  // Au démarrage : relire les pleins sauvegardés
+  useEffect(() => {
+    AsyncStorage.getItem(CLE)
+      .then((v) => {
+        if (v) setPleins(JSON.parse(v));
+      })
+      .catch(console.error)
+      .finally(() => setCharge(true));
+  }, []);
+
+  // À chaque changement : sauvegarder
+  useEffect(() => {
+    if (charge) AsyncStorage.setItem(CLE, JSON.stringify(pleins)).catch(console.error);
+  }, [pleins, charge]);
+
+  function ajouter() {
+    const litres = num(litresTxt);
+    const prix = num(prixTxt);
+    const km = num(kmTxt);
+    if (!litres || !prix || !km) return;
+    const p: Plein = {
+      id: String(Date.now()),
+      date: new Date().toISOString(),
+      litres,
+      prix,
+      km,
+    };
+    setPleins([...pleins, p]);
+    setLitresTxt('');
+    setPrixTxt('');
+    setKmTxt('');
+  }
+
+  function supprimer(id: string) {
+    setPleins(pleins.filter((p) => p.id !== id));
+  }
+
+  // Calculs : on compare chaque plein au précédent (classé par kilométrage)
+  const tries = [...pleins].sort((a, b) => a.km - b.km);
+  const details = tries
+    .map((p, i) => {
+      const prev = tries[i - 1];
+      const kmParcourus = prev ? p.km - prev.km : 0;
+      return {
+        ...p,
+        kmParcourus,
+        coutKm: kmParcourus > 0 ? p.prix / kmParcourus : null,
+        conso: kmParcourus > 0 ? (p.litres / kmParcourus) * 100 : null,
+      };
+    })
+    .reverse();
+
+  const now = new Date();
+  const budgetMois = pleins
+    .filter((p) => {
+      const d = new Date(p.date);
+      return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+    })
+    .reduce((s, p) => s + p.prix, 0);
+
+  const avecCout = details.filter((d) => d.coutKm !== null);
+  const totalPrix = avecCout.reduce((s, d) => s + d.prix, 0);
+  const totalKm = avecCout.reduce((s, d) => s + d.kmParcourus, 0);
+  const coutKmMoyen = totalKm > 0 ? totalPrix / totalKm : null;
+
+  const inputStyle = {
+    backgroundColor: '#333',
+    color: 'white',
+    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    marginBottom: 10,
+    fontSize: 16,
   };
-  const theme = useTheme();
-
-  const contentPlatformStyle = Platform.select({
-    android: {
-      paddingTop: insets.top,
-      paddingLeft: insets.left,
-      paddingRight: insets.right,
-      paddingBottom: insets.bottom,
-    },
-    web: {
-      paddingTop: Spacing.six,
-      paddingBottom: Spacing.four,
-    },
-  });
 
   return (
     <ScrollView
-      style={[styles.scrollView, { backgroundColor: theme.background }]}
-      contentInset={insets}
-      contentContainerStyle={[styles.contentContainer, contentPlatformStyle]}>
-      <ThemedView style={styles.container}>
-        <ThemedView style={styles.titleContainer}>
-          <ThemedText type="subtitle">Explore</ThemedText>
-          <ThemedText style={styles.centerText} themeColor="textSecondary">
-            This starter app includes example{'\n'}code to help you get started.
-          </ThemedText>
+      style={{ flex: 1, backgroundColor: '#111' }}
+      contentContainerStyle={{ padding: 16, paddingTop: 70, paddingBottom: 120 }}
+      keyboardShouldPersistTaps="handled"
+    >
+      <Text style={{ color: 'white', fontSize: 26, fontWeight: 'bold', marginBottom: 16 }}>
+        Carnet de pleins
+      </Text>
 
-          <ExternalLink href="https://docs.expo.dev" asChild>
-            <Pressable style={({ pressed }) => pressed && styles.pressed}>
-              <ThemedView type="backgroundElement" style={styles.linkButton}>
-                <ThemedText type="link">Expo documentation</ThemedText>
-                <SymbolView
-                  tintColor={theme.text}
-                  name={{ ios: 'arrow.up.right.square', android: 'link', web: 'link' }}
-                  size={12}
-                />
-              </ThemedView>
-            </Pressable>
-          </ExternalLink>
-        </ThemedView>
+      <View style={{ flexDirection: 'row', gap: 10, marginBottom: 20 }}>
+        <View style={{ flex: 1, backgroundColor: '#1f2937', padding: 14, borderRadius: 12 }}>
+          <Text style={{ color: '#ccc' }}>Budget ce mois</Text>
+          <Text style={{ color: '#facc15', fontSize: 22, fontWeight: 'bold' }}>
+            {budgetMois.toFixed(2)} €
+          </Text>
+        </View>
+        <View style={{ flex: 1, backgroundColor: '#1f2937', padding: 14, borderRadius: 12 }}>
+          <Text style={{ color: '#ccc' }}>Coût au km</Text>
+          <Text style={{ color: '#4ade80', fontSize: 22, fontWeight: 'bold' }}>
+            {coutKmMoyen !== null ? coutKmMoyen.toFixed(3) + ' €' : '—'}
+          </Text>
+        </View>
+      </View>
 
-        <ThemedView style={styles.sectionsWrapper}>
-          <Collapsible title="File-based routing">
-            <ThemedText type="small">
-              This app has two screens: <ThemedText type="code">src/app/index.tsx</ThemedText> and{' '}
-              <ThemedText type="code">src/app/explore.tsx</ThemedText>
-            </ThemedText>
-            <ThemedText type="small">
-              The layout file in <ThemedText type="code">src/app/_layout.tsx</ThemedText> sets up
-              the tab navigator.
-            </ThemedText>
-            <ExternalLink href="https://docs.expo.dev/router/introduction">
-              <ThemedText type="linkPrimary">Learn more</ThemedText>
-            </ExternalLink>
-          </Collapsible>
+      <Text style={{ color: 'white', fontSize: 18, fontWeight: 'bold', marginBottom: 10 }}>
+        Ajouter un plein
+      </Text>
+      <TextInput
+        style={inputStyle}
+        placeholder="Litres mis (ex : 42.5)"
+        placeholderTextColor="#888"
+        keyboardType="numeric"
+        value={litresTxt}
+        onChangeText={setLitresTxt}
+      />
+      <TextInput
+        style={inputStyle}
+        placeholder="Prix payé en € (ex : 98.20)"
+        placeholderTextColor="#888"
+        keyboardType="numeric"
+        value={prixTxt}
+        onChangeText={setPrixTxt}
+      />
+      <TextInput
+        style={inputStyle}
+        placeholder="Kilométrage au compteur (ex : 84500)"
+        placeholderTextColor="#888"
+        keyboardType="numeric"
+        value={kmTxt}
+        onChangeText={setKmTxt}
+      />
+      <Pressable
+        onPress={ajouter}
+        style={{
+          backgroundColor: '#4ade80',
+          padding: 14,
+          borderRadius: 10,
+          alignItems: 'center',
+          marginBottom: 8,
+        }}
+      >
+        <Text style={{ color: '#111', fontWeight: 'bold', fontSize: 16 }}>Ajouter</Text>
+      </Pressable>
+      <Text style={{ color: '#888', fontSize: 12, marginBottom: 24 }}>
+        Pour un calcul juste, fais le plein complet à chaque fois. Il faut au moins 2 pleins pour
+        voir le coût au km.
+      </Text>
 
-          <Collapsible title="Android, iOS, and web support">
-            <ThemedView type="backgroundElement" style={styles.collapsibleContent}>
-              <ThemedText type="small">
-                You can open this project on Android, iOS, and the web. To open the web version,
-                press <ThemedText type="smallBold">w</ThemedText> in the terminal running this
-                project.
-              </ThemedText>
-              <Image
-                source={require('@/assets/images/tutorial-web.png')}
-                style={styles.imageTutorial}
-              />
-            </ThemedView>
-          </Collapsible>
-
-          <Collapsible title="Images">
-            <ThemedText type="small">
-              For static images, you can use the <ThemedText type="code">@2x</ThemedText> and{' '}
-              <ThemedText type="code">@3x</ThemedText> suffixes to provide files for different
-              screen densities.
-            </ThemedText>
-            <Image source={require('@/assets/images/react-logo.png')} style={styles.imageReact} />
-            <ExternalLink href="https://reactnative.dev/docs/images">
-              <ThemedText type="linkPrimary">Learn more</ThemedText>
-            </ExternalLink>
-          </Collapsible>
-
-          <Collapsible title="Light and dark mode components">
-            <ThemedText type="small">
-              This template has light and dark mode support. The{' '}
-              <ThemedText type="code">useColorScheme()</ThemedText> hook lets you inspect what the
-              user&apos;s current color scheme is, and so you can adjust UI colors accordingly.
-            </ThemedText>
-            <ExternalLink href="https://docs.expo.dev/develop/user-interface/color-themes/">
-              <ThemedText type="linkPrimary">Learn more</ThemedText>
-            </ExternalLink>
-          </Collapsible>
-
-          <Collapsible title="Animations">
-            <ThemedText type="small">
-              This template includes an example of an animated component. The{' '}
-              <ThemedText type="code">src/components/ui/collapsible.tsx</ThemedText> component uses
-              the powerful <ThemedText type="code">react-native-reanimated</ThemedText> library to
-              animate opening this hint.
-            </ThemedText>
-          </Collapsible>
-        </ThemedView>
-        {Platform.OS === 'web' && <WebBadge />}
-      </ThemedView>
+      <Text style={{ color: 'white', fontSize: 18, fontWeight: 'bold', marginBottom: 10 }}>
+        Historique
+      </Text>
+      {details.length === 0 && <Text style={{ color: '#888' }}>Aucun plein pour l'instant.</Text>}
+      {details.map((d) => (
+        <View
+          key={d.id}
+          style={{
+            backgroundColor: '#1a1a1a',
+            padding: 14,
+            borderRadius: 10,
+            marginBottom: 10,
+            borderWidth: 1,
+            borderColor: '#333',
+          }}
+        >
+          <Text style={{ color: 'white', fontWeight: 'bold' }}>
+            {new Date(d.date).toLocaleDateString('fr-FR')} · {d.km} km
+          </Text>
+          <Text style={{ color: '#ccc' }}>
+            {d.litres} L · {d.prix.toFixed(2)} €
+          </Text>
+          {d.coutKm !== null && d.conso !== null && (
+            <Text style={{ color: '#93c5fd' }}>
+              {d.kmParcourus} km parcourus · {d.conso.toFixed(1)} L/100km ·{' '}
+              {d.coutKm.toFixed(3)} €/km
+            </Text>
+          )}
+          <Pressable onPress={() => supprimer(d.id)} style={{ marginTop: 8 }}>
+            <Text style={{ color: '#f87171' }}>Supprimer</Text>
+          </Pressable>
+        </View>
+      ))}
     </ScrollView>
   );
 }
-
-const styles = StyleSheet.create({
-  scrollView: {
-    flex: 1,
-  },
-  contentContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-  },
-  container: {
-    maxWidth: MaxContentWidth,
-    flexGrow: 1,
-  },
-  titleContainer: {
-    gap: Spacing.three,
-    alignItems: 'center',
-    paddingHorizontal: Spacing.four,
-    paddingVertical: Spacing.six,
-  },
-  centerText: {
-    textAlign: 'center',
-  },
-  pressed: {
-    opacity: 0.7,
-  },
-  linkButton: {
-    flexDirection: 'row',
-    paddingHorizontal: Spacing.four,
-    paddingVertical: Spacing.two,
-    borderRadius: Spacing.five,
-    justifyContent: 'center',
-    gap: Spacing.one,
-    alignItems: 'center',
-  },
-  sectionsWrapper: {
-    gap: Spacing.five,
-    paddingHorizontal: Spacing.four,
-    paddingTop: Spacing.three,
-  },
-  collapsibleContent: {
-    alignItems: 'center',
-  },
-  imageTutorial: {
-    width: '100%',
-    aspectRatio: 296 / 171,
-    borderRadius: Spacing.three,
-    marginTop: Spacing.two,
-  },
-  imageReact: {
-    width: 100,
-    height: 100,
-    alignSelf: 'center',
-  },
-});
