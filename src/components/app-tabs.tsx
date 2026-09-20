@@ -1,17 +1,15 @@
 import { NativeTabs } from 'expo-router/unstable-native-tabs';
-import { useColorScheme } from 'react-native';
 
-import { Colors } from '@/constants/theme';
+import { usePalette } from '@/constants/palette';
 
 export default function AppTabs() {
-  const scheme = useColorScheme();
-  const colors = Colors[scheme === 'unspecified' ? 'light' : scheme];
+  const c = usePalette();
 
   return (
     <NativeTabs
-      backgroundColor={colors.background}
-      indicatorColor={colors.backgroundElement}
-      labelStyle={{ selected: { color: colors.text } }}>
+      backgroundColor={c.fond}
+      indicatorColor={c.carteMeilleure}
+      labelStyle={{ selected: { color: c.orange } }}>
       <NativeTabs.Trigger name="index">
         <NativeTabs.Trigger.Label>Stations</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon
