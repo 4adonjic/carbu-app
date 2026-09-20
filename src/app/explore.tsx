@@ -1,3 +1,4 @@
+import { usePalette } from '@/constants/palette';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
@@ -9,6 +10,8 @@ type Plein = { id: string; date: string; litres: number; prix: number; km: numbe
 const num = (t: string) => parseFloat(t.replace(',', '.')) || 0;
 
 export default function CarnetScreen() {
+  const c = usePalette();
+
   const [pleins, setPleins] = useState<Plein[]>([]);
   const [litresTxt, setLitresTxt] = useState('');
   const [prixTxt, setPrixTxt] = useState('');
@@ -81,8 +84,8 @@ export default function CarnetScreen() {
   const coutKmMoyen = totalKm > 0 ? totalPrix / totalKm : null;
 
   const inputStyle = {
-    backgroundColor: '#333',
-    color: 'white',
+    backgroundColor: c.champ,
+    color: c.texte,
     borderRadius: 8,
     paddingVertical: 10,
     paddingHorizontal: 12,
@@ -92,36 +95,54 @@ export default function CarnetScreen() {
 
   return (
     <ScrollView
-      style={{ flex: 1, backgroundColor: '#111' }}
+      style={{ flex: 1, backgroundColor: c.fond }}
       contentContainerStyle={{ padding: 16, paddingTop: 70, paddingBottom: 120 }}
       keyboardShouldPersistTaps="handled"
     >
-      <Text style={{ color: 'white', fontSize: 26, fontWeight: 'bold', marginBottom: 16 }}>
+      <Text style={{ color: c.texte, fontSize: 26, fontWeight: 'bold', marginBottom: 16 }}>
         Carnet de pleins
       </Text>
 
       <View style={{ flexDirection: 'row', gap: 10, marginBottom: 20 }}>
-        <View style={{ flex: 1, backgroundColor: '#1f2937', padding: 14, borderRadius: 12 }}>
-          <Text style={{ color: '#ccc' }}>Budget ce mois</Text>
-          <Text style={{ color: '#facc15', fontSize: 22, fontWeight: 'bold' }}>
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: c.carteMeilleure,
+            padding: 14,
+            borderRadius: 12,
+            borderLeftWidth: 5,
+            borderLeftColor: c.orange,
+          }}
+        >
+          <Text style={{ color: c.texteDoux }}>Budget ce mois</Text>
+          <Text style={{ color: c.orange, fontSize: 22, fontWeight: 'bold' }}>
             {budgetMois.toFixed(2)} €
           </Text>
         </View>
-        <View style={{ flex: 1, backgroundColor: '#1f2937', padding: 14, borderRadius: 12 }}>
-          <Text style={{ color: '#ccc' }}>Coût au km</Text>
-          <Text style={{ color: '#4ade80', fontSize: 22, fontWeight: 'bold' }}>
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: c.carteMeilleure,
+            padding: 14,
+            borderRadius: 12,
+            borderLeftWidth: 5,
+            borderLeftColor: c.orange,
+          }}
+        >
+          <Text style={{ color: c.texteDoux }}>Coût au km</Text>
+          <Text style={{ color: c.orange, fontSize: 22, fontWeight: 'bold' }}>
             {coutKmMoyen !== null ? coutKmMoyen.toFixed(3) + ' €' : '—'}
           </Text>
         </View>
       </View>
 
-      <Text style={{ color: 'white', fontSize: 18, fontWeight: 'bold', marginBottom: 10 }}>
+      <Text style={{ color: c.texte, fontSize: 18, fontWeight: 'bold', marginBottom: 10 }}>
         Ajouter un plein
       </Text>
       <TextInput
         style={inputStyle}
         placeholder="Litres mis (ex : 42.5)"
-        placeholderTextColor="#888"
+        placeholderTextColor={c.texteDoux}
         keyboardType="numeric"
         value={litresTxt}
         onChangeText={setLitresTxt}
@@ -129,7 +150,7 @@ export default function CarnetScreen() {
       <TextInput
         style={inputStyle}
         placeholder="Prix payé en € (ex : 98.20)"
-        placeholderTextColor="#888"
+        placeholderTextColor={c.texteDoux}
         keyboardType="numeric"
         value={prixTxt}
         onChangeText={setPrixTxt}
@@ -137,7 +158,7 @@ export default function CarnetScreen() {
       <TextInput
         style={inputStyle}
         placeholder="Kilométrage au compteur (ex : 84500)"
-        placeholderTextColor="#888"
+        placeholderTextColor={c.texteDoux}
         keyboardType="numeric"
         value={kmTxt}
         onChangeText={setKmTxt}
@@ -145,50 +166,52 @@ export default function CarnetScreen() {
       <Pressable
         onPress={ajouter}
         style={{
-          backgroundColor: '#4ade80',
+          backgroundColor: c.orange,
           padding: 14,
           borderRadius: 10,
           alignItems: 'center',
           marginBottom: 8,
         }}
       >
-        <Text style={{ color: '#111', fontWeight: 'bold', fontSize: 16 }}>Ajouter</Text>
+        <Text style={{ color: c.surOrange, fontWeight: 'bold', fontSize: 16 }}>Ajouter</Text>
       </Pressable>
-      <Text style={{ color: '#888', fontSize: 12, marginBottom: 24 }}>
+      <Text style={{ color: c.texteDoux, fontSize: 12, marginBottom: 24 }}>
         Pour un calcul juste, fais le plein complet à chaque fois. Il faut au moins 2 pleins pour
         voir le coût au km.
       </Text>
 
-      <Text style={{ color: 'white', fontSize: 18, fontWeight: 'bold', marginBottom: 10 }}>
+      <Text style={{ color: c.texte, fontSize: 18, fontWeight: 'bold', marginBottom: 10 }}>
         Historique
       </Text>
-      {details.length === 0 && <Text style={{ color: '#888' }}>Aucun plein pour l'instant.</Text>}
+      {details.length === 0 && (
+        <Text style={{ color: c.texteDoux }}>Aucun plein pour l'instant.</Text>
+      )}
       {details.map((d) => (
         <View
           key={d.id}
           style={{
-            backgroundColor: '#1a1a1a',
+            backgroundColor: c.carte,
             padding: 14,
             borderRadius: 10,
             marginBottom: 10,
             borderWidth: 1,
-            borderColor: '#333',
+            borderColor: c.bordure,
           }}
         >
-          <Text style={{ color: 'white', fontWeight: 'bold' }}>
+          <Text style={{ color: c.texte, fontWeight: 'bold' }}>
             {new Date(d.date).toLocaleDateString('fr-FR')} · {d.km} km
           </Text>
-          <Text style={{ color: '#ccc' }}>
+          <Text style={{ color: c.texteDoux }}>
             {d.litres} L · {d.prix.toFixed(2)} €
           </Text>
           {d.coutKm !== null && d.conso !== null && (
-            <Text style={{ color: '#93c5fd' }}>
+            <Text style={{ color: c.orange, fontWeight: 'bold' }}>
               {d.kmParcourus} km parcourus · {d.conso.toFixed(1)} L/100km ·{' '}
               {d.coutKm.toFixed(3)} €/km
             </Text>
           )}
           <Pressable onPress={() => supprimer(d.id)} style={{ marginTop: 8 }}>
-            <Text style={{ color: '#f87171' }}>Supprimer</Text>
+            <Text style={{ color: c.danger }}>Supprimer</Text>
           </Pressable>
         </View>
       ))}

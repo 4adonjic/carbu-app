@@ -1,3 +1,4 @@
+import { usePalette } from '@/constants/palette';
 import * as Location from 'expo-location';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, Text, TextInput, View } from 'react-native';
@@ -36,7 +37,7 @@ function makeMapHtml(
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <style>
-  html, body, #map { height: 100%; margin: 0; background: #111; }
+  html, body, #map { height: 100%; margin: 0; background: #ddd; }
 </style>
 </head>
 <body>
@@ -59,10 +60,10 @@ function makeMapHtml(
   data.markers.forEach(function (m) {
     points.push([m.lat, m.lon]);
     L.circleMarker([m.lat, m.lon], {
-      radius: m.best ? 10 : 7,
+      radius: m.best ? 11 : 7,
       color: 'white',
       weight: 2,
-      fillColor: m.best ? '#22c55e' : '#ef4444',
+      fillColor: m.best ? '#FF6B00' : '#4B5563',
       fillOpacity: 1
     }).addTo(map).bindPopup(m.ville + ' : ' + m.prix + ' €/L');
   });
@@ -74,6 +75,8 @@ function makeMapHtml(
 }
 
 export default function HomeScreen() {
+  const c = usePalette();
+
   const [stations, setStations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
@@ -169,8 +172,8 @@ export default function HomeScreen() {
       : null;
 
   const inputStyle = {
-    backgroundColor: '#333',
-    color: 'white',
+    backgroundColor: c.champ,
+    color: c.texte,
     borderRadius: 8,
     paddingVertical: 6,
     paddingHorizontal: 10,
@@ -179,23 +182,23 @@ export default function HomeScreen() {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#111', paddingTop: 60 }}>
+    <View style={{ flex: 1, backgroundColor: c.fond, paddingTop: 60 }}>
       <View style={{ flexDirection: 'row', padding: 12, gap: 8 }}>
-        {CARBURANTS.map((c) => {
-          const selected = c.champ === carburant.champ;
+        {CARBURANTS.map((item) => {
+          const selected = item.champ === carburant.champ;
           return (
             <Pressable
-              key={c.champ}
-              onPress={() => setCarburant(c)}
+              key={item.champ}
+              onPress={() => setCarburant(item)}
               style={{
                 paddingVertical: 8,
                 paddingHorizontal: 14,
                 borderRadius: 20,
-                backgroundColor: selected ? '#4ade80' : '#333',
+                backgroundColor: selected ? c.orange : c.carte,
               }}
             >
-              <Text style={{ color: selected ? '#111' : 'white', fontWeight: 'bold' }}>
-                {c.label}
+              <Text style={{ color: selected ? c.surOrange : c.texte, fontWeight: 'bold' }}>
+                {item.label}
               </Text>
             </Pressable>
           );
@@ -203,39 +206,47 @@ export default function HomeScreen() {
       </View>
 
       <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, gap: 8 }}>
-        <Text style={{ color: '#ccc' }}>Conso</Text>
+        <Text style={{ color: c.texteDoux }}>Conso</Text>
         <TextInput
           style={inputStyle}
           value={consoTxt}
           onChangeText={setConsoTxt}
           keyboardType="numeric"
         />
-        <Text style={{ color: '#ccc' }}>L/100km</Text>
-        <Text style={{ color: '#ccc', marginLeft: 12 }}>Plein</Text>
+        <Text style={{ color: c.texteDoux }}>L/100km</Text>
+        <Text style={{ color: c.texteDoux, marginLeft: 12 }}>Plein</Text>
         <TextInput
           style={inputStyle}
           value={litresTxt}
           onChangeText={setLitresTxt}
           keyboardType="numeric"
         />
-        <Text style={{ color: '#ccc' }}>L</Text>
+        <Text style={{ color: c.texteDoux }}>L</Text>
       </View>
 
       {mapHtml && (
-        <View style={{ height: 200, marginTop: 12 }}>
+        <View
+          style={{
+            height: 200,
+            marginTop: 12,
+            marginHorizontal: 12,
+            borderRadius: 14,
+            overflow: 'hidden',
+          }}
+        >
           <WebView
             key={carburant.champ + consoTxt + litresTxt}
             originWhitelist={['*']}
             source={{ html: mapHtml }}
-            style={{ backgroundColor: '#111' }}
+            style={{ backgroundColor: c.carte }}
           />
         </View>
       )}
 
       {loading ? (
-        <ActivityIndicator style={{ marginTop: 40 }} />
+        <ActivityIndicator color={c.orange} style={{ marginTop: 40 }} />
       ) : message ? (
-        <Text style={{ color: 'white', fontSize: 16, textAlign: 'center', padding: 24 }}>
+        <Text style={{ color: c.texte, fontSize: 16, textAlign: 'center', padding: 24 }}>
           {message}
         </Text>
       ) : (
@@ -248,23 +259,25 @@ export default function HomeScreen() {
               style={{
                 padding: 16,
                 borderBottomWidth: 1,
-                borderColor: '#444',
-                backgroundColor: index === 0 ? '#1f2937' : '#111',
+                borderColor: c.bordure,
+                backgroundColor: index === 0 ? c.carteMeilleure : c.fond,
+                borderLeftWidth: index === 0 ? 5 : 0,
+                borderLeftColor: c.orange,
               }}
             >
               {index === 0 && (
-                <Text style={{ color: '#facc15', fontWeight: 'bold', marginBottom: 4 }}>
+                <Text style={{ color: c.orange, fontWeight: 'bold', marginBottom: 4 }}>
                   MEILLEUR CHOIX
                 </Text>
               )}
-              <Text style={{ fontWeight: 'bold', color: 'white', fontSize: 18 }}>{item.ville}</Text>
-              <Text style={{ color: '#ccc' }}>{item.adresse}</Text>
-              <Text style={{ color: '#93c5fd' }}>{item.distance.toFixed(1)} km</Text>
-              <Text style={{ color: '#4ade80', fontSize: 16 }}>
+              <Text style={{ fontWeight: 'bold', color: c.texte, fontSize: 18 }}>{item.ville}</Text>
+              <Text style={{ color: c.texteDoux }}>{item.adresse}</Text>
+              <Text style={{ color: c.texteDoux }}>{item.distance.toFixed(1)} km</Text>
+              <Text style={{ color: c.texte, fontSize: 16, marginTop: 4 }}>
                 {carburant.label} : {item.prix} €/L
               </Text>
-              <Text style={{ color: '#facc15', fontSize: 16 }}>
-                Coût total (plein + trajet) : {item.coutTotal.toFixed(2)} €
+              <Text style={{ color: c.orange, fontSize: 17, fontWeight: 'bold' }}>
+                Coût total : {item.coutTotal.toFixed(2)} €
               </Text>
             </View>
           )}
