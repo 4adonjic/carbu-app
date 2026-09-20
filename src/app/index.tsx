@@ -1,7 +1,17 @@
 import { usePalette } from '@/constants/palette';
 import * as Location from 'expo-location';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, Text, TextInput, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  Linking,
+  Platform,
+  Pressable,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import { WebView } from 'react-native-webview';
 
 const CARBURANTS = [
@@ -23,6 +33,24 @@ function distanceKm(lat1: number, lon1: number, lat2: number, lon2: number) {
     Math.sin(dLat / 2) ** 2 +
     Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+// Ouvre l'itinéraire dans une app externe
+function ouvrirItineraire(lat: number, lon: number, nom: string) {
+  const google = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}&travelmode=driving`;
+  const waze = `https://waze.com/ul?ll=${lat},${lon}&navigate=yes`;
+  const apple = `http://maps.apple.com/?daddr=${lat},${lon}&dirflg=d`;
+
+  const boutons: any[] = [
+    { text: 'Google Maps', onPress: () => Linking.openURL(google) },
+    { text: 'Waze', onPress: () => Linking.openURL(waze) },
+  ];
+  if (Platform.OS === 'ios') {
+    boutons.push({ text: 'Plans', onPress: () => Linking.openURL(apple) });
+  }
+  boutons.push({ text: 'Annuler', style: 'cancel' });
+
+  Alert.alert('Itinéraire', `Ouvrir avec quelle app ?\n${nom}`, boutons);
 }
 
 // Fabrique la page web de la carte (OpenStreetMap + Leaflet)
@@ -279,6 +307,20 @@ export default function HomeScreen() {
               <Text style={{ color: c.orange, fontSize: 17, fontWeight: 'bold' }}>
                 Coût total : {item.coutTotal.toFixed(2)} €
               </Text>
+              <Pressable
+                onPress={() =>
+                  ouvrirItineraire(item.geom.lat, item.geom.lon, `${item.ville}, ${item.adresse}`)
+                }
+                style={{
+                  backgroundColor: c.orange,
+                  paddingVertical: 10,
+                  borderRadius: 10,
+                  alignItems: 'center',
+                  marginTop: 10,
+                }}
+              >
+                <Text style={{ color: c.surOrange, fontWeight: 'bold' }}>Itinéraire</Text>
+              </Pressable>
             </View>
           )}
         />
