@@ -1,6 +1,13 @@
 import * as Location from 'expo-location';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, Text, View } from 'react-native';
+import { ActivityIndicator, FlatList, Pressable, Text, View } from 'react-native';
+
+const CARBURANTS = [
+  { label: 'Gazole', champ: 'gazole_prix' },
+  { label: 'E10', champ: 'e10_prix' },
+  { label: 'SP98', champ: 'sp98_prix' },
+  { label: 'SP95', champ: 'sp95_prix' },
+];
 
 function distanceKm(lat1: number, lon1: number, lat2: number, lon2: number) {
   const R = 6371;
@@ -17,21 +24,40 @@ export default function HomeScreen() {
   const [stations, setStations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
+  const [carburant, setCarburant] = useState(CARBURANTS[0]);
+  const [position, setPosition] = useState<{ lat: number; lon: number } | null>(null);
 
+  // Étape A : récupérer ta position (une seule fois)
   useEffect(() => {
-    async function load() {
+    async function getPosition() {
       try {
         const { status } = await Location.requestForegroundPermissionsAsync();
         if (status !== 'granted') {
           setMessage('Autorise la localisation pour voir les stations près de toi.');
+          setLoading(false);
           return;
         }
-
         const pos = await Location.getCurrentPositionAsync({});
-        const lat = pos.coords.latitude;
-        const lon = pos.coords.longitude;
+        setPosition({ lat: pos.coords.latitude, lon: pos.coords.longitude });
+      } catch (e) {
+        console.error(e);
+        setMessage('Impossible de trouver ta position.');
+        setLoading(false);
+      }
+    }
+    getPosition();
+  }, []);
 
-        const where = `gazole_prix is not null and within_distance(geom, geom'POINT(${lon} ${lat})', 30km)`;
+  // Étape B : chercher les stations (à chaque changement de carburant)
+  useEffect(() => {
+    if (!position) return;
+    const { lat, lon } = position;
+
+    async function load() {
+      setLoading(true);
+      setMessage('');
+      try {
+        const where = `${carburant.champ} is not null and within_distance(geom, geom'POINT(${lon} ${lat})', 30km)`;
         const url =
           'https://data.economie.gouv.fr/api/explore/v2.1/catalog/datasets/prix-des-carburants-en-france-flux-instantane-v2/records' +
           `?where=${encodeURIComponent(where)}&limit=100`;
@@ -59,43 +85,66 @@ export default function HomeScreen() {
       }
     }
     load();
-  }, []);
-
-  if (loading) return <ActivityIndicator style={{ flex: 1 }} />;
-
-  if (message) {
-    return (
-      <View style={{ flex: 1, backgroundColor: '#111', justifyContent: 'center', padding: 24 }}>
-        <Text style={{ color: 'white', fontSize: 16, textAlign: 'center' }}>{message}</Text>
-      </View>
-    );
-  }
+  }, [position, carburant]);
 
   return (
-    <FlatList
-      style={{ marginTop: 60, backgroundColor: '#111' }}
-      data={stations}
-      keyExtractor={(s) => String(s.id)}
-      renderItem={({ item, index }) => (
-        <View
-          style={{
-            padding: 16,
-            borderBottomWidth: 1,
-            borderColor: '#444',
-            backgroundColor: index === 0 ? '#1f2937' : '#111',
-          }}
-        >
-          {index === 0 && (
-            <Text style={{ color: '#facc15', fontWeight: 'bold', marginBottom: 4 }}>
-              LA PLUS PROCHE
-            </Text>
+    <View style={{ flex: 1, backgroundColor: '#111', paddingTop: 60 }}>
+      <View style={{ flexDirection: 'row', padding: 12, gap: 8 }}>
+        {CARBURANTS.map((c) => {
+          const selected = c.champ === carburant.champ;
+          return (
+            <Pressable
+              key={c.champ}
+              onPress={() => setCarburant(c)}
+              style={{
+                paddingVertical: 8,
+                paddingHorizontal: 14,
+                borderRadius: 20,
+                backgroundColor: selected ? '#4ade80' : '#333',
+              }}
+            >
+              <Text style={{ color: selected ? '#111' : 'white', fontWeight: 'bold' }}>
+                {c.label}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
+
+      {loading ? (
+        <ActivityIndicator style={{ marginTop: 40 }} />
+      ) : message ? (
+        <Text style={{ color: 'white', fontSize: 16, textAlign: 'center', padding: 24 }}>
+          {message}
+        </Text>
+      ) : (
+        <FlatList
+          data={stations}
+          keyExtractor={(s) => String(s.id)}
+          renderItem={({ item, index }) => (
+            <View
+              style={{
+                padding: 16,
+                borderBottomWidth: 1,
+                borderColor: '#444',
+                backgroundColor: index === 0 ? '#1f2937' : '#111',
+              }}
+            >
+              {index === 0 && (
+                <Text style={{ color: '#facc15', fontWeight: 'bold', marginBottom: 4 }}>
+                  LA PLUS PROCHE
+                </Text>
+              )}
+              <Text style={{ fontWeight: 'bold', color: 'white', fontSize: 18 }}>{item.ville}</Text>
+              <Text style={{ color: '#ccc' }}>{item.adresse}</Text>
+              <Text style={{ color: '#93c5fd' }}>{item.distance.toFixed(1)} km</Text>
+              <Text style={{ color: '#4ade80', fontSize: 16 }}>
+                {carburant.label} : {item[carburant.champ]} €/L
+              </Text>
+            </View>
           )}
-          <Text style={{ fontWeight: 'bold', color: 'white', fontSize: 18 }}>{item.ville}</Text>
-          <Text style={{ color: '#ccc' }}>{item.adresse}</Text>
-          <Text style={{ color: '#93c5fd' }}>{item.distance.toFixed(1)} km</Text>
-          <Text style={{ color: '#4ade80', fontSize: 16 }}>Gazole : {item.gazole_prix} €/L</Text>
-        </View>
+        />
       )}
-    />
+    </View>
   );
 }
