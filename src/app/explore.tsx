@@ -4,16 +4,44 @@ import { File, Paths } from 'expo-file-system';
 import * as LegacyFS from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import { useEffect, useState } from 'react';
-import { Alert, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import {
+  Alert,
+  Platform,
+  Pressable,
+  ScrollView,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 
-const CLE = 'carnet_pleins';
+const CLE_PLEINS = 'carnet_pleins';
+const CLE_VEHICULES = 'carnet_vehicules';
 
-type Plein = { id: string; date: string; litres: number; prix: number; km: number };
+type Vehicule = { id: string; nom: string };
+type Plein = {
+  id: string;
+  vehiculeId: string;
+  date: string;
+  litres: number;
+  prix: number;
+  km: number;
+};
+
+const VEHICULE_DEFAUT: Vehicule = { id: 'v1', nom: 'Mon véhicule' };
 
 const num = (t: string) => parseFloat(t.replace(',', '.')) || 0;
 
 // Format français : virgule pour les décimales
 const fmt = (n: number | null, d: number) => (n === null ? '' : n.toFixed(d).replace('.', ','));
+
+// Transforme un nom en morceau de nom de fichier (sans accents ni espaces)
+const slug = (t: string) =>
+  t
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '') || 'vehicule';
 
 // Android : enregistre le fichier dans un dossier choisi (ex : Téléchargements)
 // Renvoie true si le fichier a été enregistré, false si l'utilisateur a annulé
@@ -47,26 +75,96 @@ async function partager(csv: string, nom: string) {
 export default function CarnetScreen() {
   const c = usePalette();
 
+  const [vehicules, setVehicules] = useState<Vehicule[]>([VEHICULE_DEFAUT]);
+  const [actifId, setActifId] = useState<string>(VEHICULE_DEFAUT.id);
   const [pleins, setPleins] = useState<Plein[]>([]);
   const [litresTxt, setLitresTxt] = useState('');
   const [prixTxt, setPrixTxt] = useState('');
   const [kmTxt, setKmTxt] = useState('');
+  const [ajoutVehicule, setAjoutVehicule] = useState(false);
+  const [nomVehiculeTxt, setNomVehiculeTxt] = useState('');
   const [charge, setCharge] = useState(false);
 
-  // Au démarrage : relire les pleins sauvegardés
+  // Au démarrage : relire les véhicules et les pleins sauvegardés
   useEffect(() => {
-    AsyncStorage.getItem(CLE)
-      .then((v) => {
-        if (v) setPleins(JSON.parse(v));
-      })
-      .catch(console.error)
-      .finally(() => setCharge(true));
+    async function charger() {
+      try {
+        const [p, v] = await Promise.all([
+          AsyncStorage.getItem(CLE_PLEINS),
+          AsyncStorage.getItem(CLE_VEHICULES),
+        ]);
+
+        let vehs: Vehicule[] = [VEHICULE_DEFAUT];
+        let actif = VEHICULE_DEFAUT.id;
+        if (v) {
+          const parsed = JSON.parse(v);
+          if (parsed.vehicules && parsed.vehicules.length > 0) {
+            vehs = parsed.vehicules;
+            actif = parsed.actifId ?? vehs[0].id;
+          }
+        }
+        if (!vehs.find((x) => x.id === actif)) actif = vehs[0].id;
+
+        // Les anciens pleins (sans véhicule) vont dans le premier véhicule
+        const anciens = p ? JSON.parse(p) : [];
+        setPleins(anciens.map((x: any) => ({ ...x, vehiculeId: x.vehiculeId ?? vehs[0].id })));
+        setVehicules(vehs);
+        setActifId(actif);
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setCharge(true);
+      }
+    }
+    charger();
   }, []);
 
   // À chaque changement : sauvegarder
   useEffect(() => {
-    if (charge) AsyncStorage.setItem(CLE, JSON.stringify(pleins)).catch(console.error);
+    if (charge) AsyncStorage.setItem(CLE_PLEINS, JSON.stringify(pleins)).catch(console.error);
   }, [pleins, charge]);
+
+  useEffect(() => {
+    if (charge) {
+      AsyncStorage.setItem(CLE_VEHICULES, JSON.stringify({ vehicules, actifId })).catch(
+        console.error
+      );
+    }
+  }, [vehicules, actifId, charge]);
+
+  const actif = vehicules.find((v) => v.id === actifId) ?? vehicules[0];
+  const pleinsVehicule = pleins.filter((p) => p.vehiculeId === actif.id);
+
+  function ajouterVehicule() {
+    const nom = nomVehiculeTxt.trim();
+    if (!nom) return;
+    const v: Vehicule = { id: 'v' + Date.now(), nom };
+    setVehicules([...vehicules, v]);
+    setActifId(v.id);
+    setNomVehiculeTxt('');
+    setAjoutVehicule(false);
+  }
+
+  function supprimerVehicule() {
+    if (vehicules.length <= 1) return;
+    Alert.alert(
+      'Supprimer ce véhicule ?',
+      `"${actif.nom}" et tous ses pleins seront supprimés.`,
+      [
+        { text: 'Annuler', style: 'cancel' },
+        {
+          text: 'Supprimer',
+          style: 'destructive',
+          onPress: () => {
+            const reste = vehicules.filter((v) => v.id !== actif.id);
+            setPleins(pleins.filter((p) => p.vehiculeId !== actif.id));
+            setVehicules(reste);
+            setActifId(reste[0].id);
+          },
+        },
+      ]
+    );
+  }
 
   function ajouter() {
     const litres = num(litresTxt);
@@ -75,6 +173,7 @@ export default function CarnetScreen() {
     if (!litres || !prix || !km) return;
     const p: Plein = {
       id: String(Date.now()),
+      vehiculeId: actif.id,
       date: new Date().toISOString(),
       litres,
       prix,
@@ -90,8 +189,8 @@ export default function CarnetScreen() {
     setPleins(pleins.filter((p) => p.id !== id));
   }
 
-  // Calculs : on compare chaque plein au précédent (classé par kilométrage)
-  const tries = [...pleins].sort((a, b) => a.km - b.km);
+  // Calculs (pour le véhicule sélectionné) : on compare chaque plein au précédent
+  const tries = [...pleinsVehicule].sort((a, b) => a.km - b.km);
   const details = tries
     .map((p, i) => {
       const prev = tries[i - 1];
@@ -106,7 +205,7 @@ export default function CarnetScreen() {
     .reverse();
 
   const now = new Date();
-  const budgetMois = pleins
+  const budgetMois = pleinsVehicule
     .filter((p) => {
       const d = new Date(p.date);
       return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
@@ -118,10 +217,10 @@ export default function CarnetScreen() {
   const totalKm = avecCout.reduce((s, d) => s + d.kmParcourus, 0);
   const coutKmMoyen = totalKm > 0 ? totalPrix / totalKm : null;
 
-  // Export : crée un fichier .csv (séparateur ;) qui s'ouvre dans Excel ou Sheets
+  // Export : crée un fichier .csv (séparateur ;) pour le véhicule sélectionné
   async function exporter() {
     if (details.length === 0) {
-      Alert.alert('Export', 'Aucun plein à exporter pour le moment.');
+      Alert.alert('Export', `Aucun plein à exporter pour "${actif.nom}".`);
       return;
     }
     const entete = 'Date;Kilométrage;Litres;Prix total (€);Km parcourus;Conso (L/100km);Coût (€/km)';
@@ -137,16 +236,16 @@ export default function CarnetScreen() {
       ].join(';')
     );
     const total = `Total;;${fmt(
-      pleins.reduce((s, p) => s + p.litres, 0),
+      pleinsVehicule.reduce((s, p) => s + p.litres, 0),
       2
     )};${fmt(
-      pleins.reduce((s, p) => s + p.prix, 0),
+      pleinsVehicule.reduce((s, p) => s + p.prix, 0),
       2
     )};;;`;
 
     // Le caractère \uFEFF au début permet à Excel d'afficher correctement les accents
     const csv = '\uFEFF' + [entete, ...lignes, total].join('\n');
-    const nom = `frais-carburant-${new Date().toISOString().slice(0, 10)}`;
+    const nom = `frais-carburant-${slug(actif.nom)}-${new Date().toISOString().slice(0, 10)}`;
 
     try {
       if (Platform.OS === 'android') {
@@ -162,7 +261,7 @@ export default function CarnetScreen() {
       await partager(csv, nom);
     } catch (e) {
       console.error(e);
-      Alert.alert('Export', "Impossible de créer le fichier.");
+      Alert.alert('Export', 'Impossible de créer le fichier.');
     }
   }
 
@@ -187,7 +286,7 @@ export default function CarnetScreen() {
           flexDirection: 'row',
           alignItems: 'center',
           justifyContent: 'space-between',
-          marginBottom: 16,
+          marginBottom: 12,
         }}
       >
         <Text style={{ color: c.texte, fontSize: 26, fontWeight: 'bold' }}>Carnet de pleins</Text>
@@ -204,6 +303,71 @@ export default function CarnetScreen() {
           <Text style={{ color: c.orange, fontWeight: 'bold' }}>Exporter</Text>
         </Pressable>
       </View>
+
+      {/* Choix du véhicule */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{ gap: 8, paddingBottom: 4 }}
+        style={{ flexGrow: 0, marginBottom: 12 }}
+        keyboardShouldPersistTaps="handled"
+      >
+        {vehicules.map((v) => {
+          const selected = v.id === actif.id;
+          return (
+            <Pressable
+              key={v.id}
+              onPress={() => setActifId(v.id)}
+              style={{
+                paddingVertical: 8,
+                paddingHorizontal: 16,
+                borderRadius: 20,
+                backgroundColor: selected ? c.orange : c.carte,
+              }}
+            >
+              <Text style={{ color: selected ? c.surOrange : c.texte, fontWeight: 'bold' }}>
+                {v.nom}
+              </Text>
+            </Pressable>
+          );
+        })}
+        <Pressable
+          onPress={() => setAjoutVehicule(!ajoutVehicule)}
+          style={{
+            paddingVertical: 8,
+            paddingHorizontal: 16,
+            borderRadius: 20,
+            borderWidth: 2,
+            borderColor: c.orange,
+          }}
+        >
+          <Text style={{ color: c.orange, fontWeight: 'bold' }}>+</Text>
+        </Pressable>
+      </ScrollView>
+
+      {ajoutVehicule && (
+        <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
+          <TextInput
+            style={[inputStyle, { flex: 1, marginBottom: 0 }]}
+            placeholder="Nom du véhicule (ex : Utilitaire)"
+            placeholderTextColor={c.texteDoux}
+            value={nomVehiculeTxt}
+            onChangeText={setNomVehiculeTxt}
+            autoFocus
+          />
+          <Pressable
+            onPress={ajouterVehicule}
+            style={{
+              backgroundColor: c.orange,
+              paddingHorizontal: 18,
+              borderRadius: 8,
+              justifyContent: 'center',
+            }}
+          >
+            <Text style={{ color: c.surOrange, fontWeight: 'bold' }}>OK</Text>
+          </Pressable>
+        </View>
+      )}
 
       <View style={{ flexDirection: 'row', gap: 10, marginBottom: 20 }}>
         <View
@@ -317,6 +481,12 @@ export default function CarnetScreen() {
           </Pressable>
         </View>
       ))}
+
+      {vehicules.length > 1 && (
+        <Pressable onPress={supprimerVehicule} style={{ marginTop: 16, alignItems: 'center' }}>
+          <Text style={{ color: c.danger }}>Supprimer le véhicule « {actif.nom} »</Text>
+        </Pressable>
+      )}
     </ScrollView>
   );
 }
