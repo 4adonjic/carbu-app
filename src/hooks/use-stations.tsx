@@ -1,3 +1,4 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Location from 'expo-location';
 import { createContext, ReactNode, useContext, useEffect, useState } from 'react';
 
@@ -7,6 +8,10 @@ export const CARBURANTS = [
   { label: 'SP98', champ: 'sp98_prix' },
   { label: 'SP95', champ: 'sp95_prix' },
 ];
+
+export const RAYONS = [10, 20, 30, 50];
+
+const CLE_REGLAGES = 'reglages_stations';
 
 // La distance calculée est à vol d'oiseau, la route est plus longue : on multiplie par 1.3
 const ROUTE_FACTOR = 1.3;
@@ -32,10 +37,13 @@ type StationsData = {
   setConsoTxt: (t: string) => void;
   litresTxt: string;
   setLitresTxt: (t: string) => void;
+  rayon: number;
+  setRayon: (r: number) => void;
   position: Position | null;
   liste: any[];
   loading: boolean;
   message: string;
+  actualiser: () => void;
 };
 
 const StationsContext = createContext<StationsData | null>(null);
@@ -48,6 +56,37 @@ export function StationsProvider({ children }: { children: ReactNode }) {
   const [position, setPosition] = useState<Position | null>(null);
   const [consoTxt, setConsoTxt] = useState('6');
   const [litresTxt, setLitresTxt] = useState('40');
+  const [rayon, setRayon] = useState(30);
+  const [reglagesCharges, setReglagesCharges] = useState(false);
+  const [rafraichir, setRafraichir] = useState(0);
+
+  // Au démarrage : relire les réglages sauvegardés
+  useEffect(() => {
+    AsyncStorage.getItem(CLE_REGLAGES)
+      .then((v) => {
+        if (v) {
+          const r = JSON.parse(v);
+          if (r.carburantChamp) {
+            const c = CARBURANTS.find((x) => x.champ === r.carburantChamp);
+            if (c) setCarburant(c);
+          }
+          if (r.consoTxt) setConsoTxt(r.consoTxt);
+          if (r.litresTxt) setLitresTxt(r.litresTxt);
+          if (r.rayon) setRayon(r.rayon);
+        }
+      })
+      .catch(console.error)
+      .finally(() => setReglagesCharges(true));
+  }, []);
+
+  // À chaque changement : sauvegarder les réglages
+  useEffect(() => {
+    if (!reglagesCharges) return;
+    AsyncStorage.setItem(
+      CLE_REGLAGES,
+      JSON.stringify({ carburantChamp: carburant.champ, consoTxt, litresTxt, rayon })
+    ).catch(console.error);
+  }, [carburant, consoTxt, litresTxt, rayon, reglagesCharges]);
 
   // Récupérer ta position (une seule fois)
   useEffect(() => {
@@ -70,7 +109,7 @@ export function StationsProvider({ children }: { children: ReactNode }) {
     getPosition();
   }, []);
 
-  // Chercher les stations (à chaque changement de carburant)
+  // Chercher les stations (à chaque changement de carburant, de rayon, ou d'actualisation)
   useEffect(() => {
     if (!position) return;
     const { lat, lon } = position;
@@ -79,7 +118,7 @@ export function StationsProvider({ children }: { children: ReactNode }) {
       setLoading(true);
       setMessage('');
       try {
-        const where = `${carburant.champ} is not null and within_distance(geom, geom'POINT(${lon} ${lat})', 30km)`;
+        const where = `${carburant.champ} is not null and within_distance(geom, geom'POINT(${lon} ${lat})', ${rayon}km)`;
         const url =
           'https://data.economie.gouv.fr/api/explore/v2.1/catalog/datasets/prix-des-carburants-en-france-flux-instantane-v2/records' +
           `?where=${encodeURIComponent(where)}&limit=100`;
@@ -96,7 +135,7 @@ export function StationsProvider({ children }: { children: ReactNode }) {
 
         setStations(list);
         if (list.length === 0) {
-          setMessage('Aucune station trouvée à moins de 30 km.');
+          setMessage(`Aucune station trouvée à moins de ${rayon} km.`);
         }
       } catch (e) {
         console.error(e);
@@ -106,7 +145,7 @@ export function StationsProvider({ children }: { children: ReactNode }) {
       }
     }
     load();
-  }, [position, carburant]);
+  }, [position, carburant, rayon, rafraichir]);
 
   // Calculer le vrai coût de chaque station
   const conso = parseFloat(consoTxt.replace(',', '.')) || 0;
@@ -130,10 +169,13 @@ export function StationsProvider({ children }: { children: ReactNode }) {
         setConsoTxt,
         litresTxt,
         setLitresTxt,
+        rayon,
+        setRayon,
         position,
         liste,
         loading,
         message,
+        actualiser: () => setRafraichir((n) => n + 1),
       }}
     >
       {children}

@@ -1,5 +1,5 @@
 import { usePalette } from '@/constants/palette';
-import { CARBURANTS, useStations } from '@/hooks/use-stations';
+import { CARBURANTS, RAYONS, useStations } from '@/hooks/use-stations';
 import {
   ActivityIndicator,
   Alert,
@@ -39,9 +39,12 @@ export default function HomeScreen() {
     setConsoTxt,
     litresTxt,
     setLitresTxt,
+    rayon,
+    setRayon,
     liste,
     loading,
     message,
+    actualiser,
   } = useStations();
 
   const inputStyle = {
@@ -56,29 +59,52 @@ export default function HomeScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: c.fond, paddingTop: 60 }}>
-      <View style={{ flexDirection: 'row', padding: 12, gap: 8 }}>
-        {CARBURANTS.map((item) => {
-          const selected = item.champ === carburant.champ;
-          return (
-            <Pressable
-              key={item.champ}
-              onPress={() => setCarburant(item)}
-              style={{
-                paddingVertical: 8,
-                paddingHorizontal: 14,
-                borderRadius: 20,
-                backgroundColor: selected ? c.orange : c.carte,
-              }}
-            >
-              <Text style={{ color: selected ? c.surOrange : c.texte, fontWeight: 'bold' }}>
-                {item.label}
-              </Text>
-            </Pressable>
-          );
-        })}
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          paddingHorizontal: 12,
+        }}
+      >
+        <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap', flex: 1 }}>
+          {CARBURANTS.map((item) => {
+            const selected = item.champ === carburant.champ;
+            return (
+              <Pressable
+                key={item.champ}
+                onPress={() => setCarburant(item)}
+                style={{
+                  paddingVertical: 8,
+                  paddingHorizontal: 14,
+                  borderRadius: 20,
+                  backgroundColor: selected ? c.orange : c.carte,
+                }}
+              >
+                <Text style={{ color: selected ? c.surOrange : c.texte, fontWeight: 'bold' }}>
+                  {item.label}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+        <Pressable
+          onPress={actualiser}
+          style={{
+            width: 40,
+            height: 40,
+            borderRadius: 20,
+            backgroundColor: c.carte,
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginLeft: 8,
+          }}
+        >
+          <Text style={{ fontSize: 18 }}>{loading ? '…' : '↻'}</Text>
+        </Pressable>
       </View>
 
-      <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, gap: 8 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, gap: 8, marginTop: 10 }}>
         <Text style={{ color: c.texteDoux }}>Conso</Text>
         <TextInput
           style={inputStyle}
@@ -95,6 +121,29 @@ export default function HomeScreen() {
           keyboardType="numeric"
         />
         <Text style={{ color: c.texteDoux }}>L</Text>
+      </View>
+
+      <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, gap: 8, marginTop: 10 }}>
+        <Text style={{ color: c.texteDoux }}>Rayon</Text>
+        {RAYONS.map((r) => {
+          const selected = r === rayon;
+          return (
+            <Pressable
+              key={r}
+              onPress={() => setRayon(r)}
+              style={{
+                paddingVertical: 6,
+                paddingHorizontal: 12,
+                borderRadius: 16,
+                backgroundColor: selected ? c.orange : c.carte,
+              }}
+            >
+              <Text style={{ color: selected ? c.surOrange : c.texte, fontWeight: 'bold' }}>
+                {r} km
+              </Text>
+            </Pressable>
+          );
+        })}
       </View>
 
       {loading ? (
