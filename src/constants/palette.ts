@@ -2,27 +2,27 @@ import { useColorScheme } from 'react-native';
 
 const clair = {
   fond: '#FFFFFF',
-  carte: '#F3F4F6',
-  carteMeilleure: '#FFEEDD',
-  bordure: '#E5E7EB',
-  texte: '#1A1A1A',
-  texteDoux: '#6B7280',
+  carte: '#F7F7F8',
+  carteMeilleure: '#FFF4EC',
+  bordure: '#EAEAEC',
+  texte: '#181818',
+  texteDoux: '#7A7A7E',
   orange: '#FF6B00',
   surOrange: '#FFFFFF',
-  champ: '#F3F4F6',
+  champ: '#F2F2F3',
   danger: '#DC2626',
 };
 
 const sombre = {
-  fond: '#2B2D31',
-  carte: '#383A40',
-  carteMeilleure: '#4A3A2C',
-  bordure: '#4B4E55',
-  texte: '#FFFFFF',
-  texteDoux: '#B5B8BE',
+  fond: '#222327',
+  carte: '#2C2D32',
+  carteMeilleure: '#3A2C20',
+  bordure: '#3A3B40',
+  texte: '#FAFAFA',
+  texteDoux: '#9A9AA0',
   orange: '#FF6B00',
   surOrange: '#FFFFFF',
-  champ: '#383A40',
+  champ: '#2C2D32',
   danger: '#F87171',
 };
 
@@ -30,3 +30,17 @@ export function usePalette() {
   const mode = useColorScheme();
   return mode === 'dark' ? sombre : clair;
 }
+
+// Tailles de texte communes à toute l'app
+export const type = {
+  titre: { fontSize: 24, fontWeight: '700' as const, letterSpacing: -0.3 },
+  sousTitre: { fontSize: 15, fontWeight: '400' as const },
+  section: { fontSize: 17, fontWeight: '600' as const },
+  corps: { fontSize: 15, fontWeight: '400' as const },
+  corpsGras: { fontSize: 15, fontWeight: '600' as const },
+  petit: { fontSize: 13, fontWeight: '400' as const },
+  montant: { fontSize: 20, fontWeight: '700' as const, letterSpacing: -0.3 },
+};
+
+// Espacements communs (en px)
+export const espace = { xs: 4, s: 8, m: 12, l: 20, xl: 32 };

@@ -1,4 +1,4 @@
-import { usePalette } from '@/constants/palette';
+import { espace, type, usePalette } from '@/constants/palette';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { File, Paths } from 'expo-file-system';
 import * as LegacyFS from 'expo-file-system/legacy';
@@ -45,7 +45,6 @@ const slug = (t: string) =>
     .replace(/^-|-$/g, '') || 'vehicule';
 
 // Android : enregistre le fichier dans un dossier choisi (ex : Téléchargements)
-// Renvoie true si le fichier a été enregistré, false si l'utilisateur a annulé
 async function telechargerAndroid(csv: string, nom: string): Promise<boolean> {
   const SAF = LegacyFS.StorageAccessFramework;
   const dossierDepart = SAF.getUriForDirectoryInRoot('Download');
@@ -86,7 +85,6 @@ export default function CarnetScreen() {
   const [nomVehiculeTxt, setNomVehiculeTxt] = useState('');
   const [charge, setCharge] = useState(false);
 
-  // Au démarrage : relire les véhicules et les pleins sauvegardés
   useEffect(() => {
     async function charger() {
       try {
@@ -106,7 +104,6 @@ export default function CarnetScreen() {
         }
         if (!vehs.find((x) => x.id === actif)) actif = vehs[0].id;
 
-        // Les anciens pleins (sans véhicule) vont dans le premier véhicule
         const anciens = p ? JSON.parse(p) : [];
         setPleins(anciens.map((x: any) => ({ ...x, vehiculeId: x.vehiculeId ?? vehs[0].id })));
         setVehicules(vehs);
@@ -120,7 +117,6 @@ export default function CarnetScreen() {
     charger();
   }, []);
 
-  // À chaque changement : sauvegarder
   useEffect(() => {
     if (charge) AsyncStorage.setItem(CLE_PLEINS, JSON.stringify(pleins)).catch(console.error);
   }, [pleins, charge]);
@@ -148,23 +144,19 @@ export default function CarnetScreen() {
 
   function supprimerVehicule() {
     if (vehicules.length <= 1) return;
-    Alert.alert(
-      'Supprimer ce véhicule ?',
-      `"${actif.nom}" et tous ses pleins seront supprimés.`,
-      [
-        { text: 'Annuler', style: 'cancel' },
-        {
-          text: 'Supprimer',
-          style: 'destructive',
-          onPress: () => {
-            const reste = vehicules.filter((v) => v.id !== actif.id);
-            setPleins(pleins.filter((p) => p.vehiculeId !== actif.id));
-            setVehicules(reste);
-            setActifId(reste[0].id);
-          },
+    Alert.alert('Supprimer ce véhicule ?', `"${actif.nom}" et tous ses pleins seront supprimés.`, [
+      { text: 'Annuler', style: 'cancel' },
+      {
+        text: 'Supprimer',
+        style: 'destructive',
+        onPress: () => {
+          const reste = vehicules.filter((v) => v.id !== actif.id);
+          setPleins(pleins.filter((p) => p.vehiculeId !== actif.id));
+          setVehicules(reste);
+          setActifId(reste[0].id);
         },
-      ]
-    );
+      },
+    ]);
   }
 
   function ajouter() {
@@ -190,7 +182,6 @@ export default function CarnetScreen() {
     setPleins(pleins.filter((p) => p.id !== id));
   }
 
-  // Calculs (pour le véhicule sélectionné) : on compare chaque plein au précédent
   const tries = [...pleinsVehicule].sort((a, b) => a.km - b.km);
   const details = tries
     .map((p, i) => {
@@ -218,7 +209,6 @@ export default function CarnetScreen() {
   const totalKm = avecCout.reduce((s, d) => s + d.kmParcourus, 0);
   const coutKmMoyen = totalKm > 0 ? totalPrix / totalKm : null;
 
-  // Export : crée un fichier .csv (séparateur ;) pour le véhicule sélectionné
   async function exporter() {
     if (details.length === 0) {
       Alert.alert('Export', `Aucun plein à exporter pour "${actif.nom}".`);
@@ -244,7 +234,6 @@ export default function CarnetScreen() {
       2
     )};;;`;
 
-    // Le caractère \uFEFF au début permet à Excel d'afficher correctement les accents
     const csv = '\uFEFF' + [entete, ...lignes, total].join('\n');
     const nom = `frais-carburant-${slug(actif.nom)}-${new Date().toISOString().slice(0, 10)}`;
 
@@ -256,7 +245,6 @@ export default function CarnetScreen() {
           return;
         } catch (e) {
           console.error(e);
-          // Si le téléchargement échoue, on passe par le menu de partage
         }
       }
       await partager(csv, nom);
@@ -269,48 +257,40 @@ export default function CarnetScreen() {
   const inputStyle = {
     backgroundColor: c.champ,
     color: c.texte,
-    borderRadius: 8,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    marginBottom: 10,
-    fontSize: 16,
+    borderRadius: 10,
+    paddingVertical: 12,
+    paddingHorizontal: espace.m,
+    marginBottom: espace.s,
+    ...type.corps,
   };
 
   return (
     <ScrollView
       style={{ flex: 1, backgroundColor: c.fond }}
-      contentContainerStyle={{ padding: 16, paddingTop: 70, paddingBottom: 120 }}
+      contentContainerStyle={{ paddingHorizontal: espace.l, paddingTop: 56, paddingBottom: espace.xl }}
       keyboardShouldPersistTaps="handled"
     >
+      {/* En-tête */}
       <View
         style={{
           flexDirection: 'row',
           alignItems: 'center',
           justifyContent: 'space-between',
-          marginBottom: 12,
+          marginBottom: espace.m,
         }}
       >
-        <Text style={{ color: c.texte, fontSize: 26, fontWeight: 'bold' }}>Carnet de pleins</Text>
-        <Pressable
-          onPress={exporter}
-          style={{
-            borderWidth: 2,
-            borderColor: c.orange,
-            paddingVertical: 6,
-            paddingHorizontal: 14,
-            borderRadius: 20,
-          }}
-        >
-          <Text style={{ color: c.orange, fontWeight: 'bold' }}>Exporter</Text>
+        <Text style={{ color: c.texte, ...type.titre }}>Carnet</Text>
+        <Pressable onPress={exporter} hitSlop={8}>
+          <Text style={{ color: c.orange, ...type.petit, fontWeight: '700' }}>Exporter</Text>
         </Pressable>
       </View>
 
-      {/* Choix du véhicule */}
+      {/* Véhicules */}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ gap: 8, paddingBottom: 4 }}
-        style={{ flexGrow: 0, marginBottom: 12 }}
+        contentContainerStyle={{ gap: espace.s }}
+        style={{ flexGrow: 0, marginBottom: espace.m }}
         keyboardShouldPersistTaps="handled"
       >
         {vehicules.map((v) => {
@@ -320,13 +300,19 @@ export default function CarnetScreen() {
               key={v.id}
               onPress={() => setActifId(v.id)}
               style={{
-                paddingVertical: 8,
-                paddingHorizontal: 16,
-                borderRadius: 20,
+                paddingVertical: 7,
+                paddingHorizontal: 14,
+                borderRadius: 18,
                 backgroundColor: selected ? c.orange : c.carte,
               }}
             >
-              <Text style={{ color: selected ? c.surOrange : c.texte, fontWeight: 'bold' }}>
+              <Text
+                style={{
+                  color: selected ? c.surOrange : c.texte,
+                  ...type.petit,
+                  fontWeight: selected ? '700' : '500',
+                }}
+              >
                 {v.nom}
               </Text>
             </Pressable>
@@ -335,39 +321,23 @@ export default function CarnetScreen() {
         <Pressable
           onPress={() => setAjoutVehicule(!ajoutVehicule)}
           style={{
-            paddingVertical: 8,
-            paddingHorizontal: 16,
-            borderRadius: 20,
-            borderWidth: 2,
-            borderColor: c.orange,
+            width: 34,
+            height: 34,
+            borderRadius: 17,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: c.carte,
           }}
         >
-          <Text style={{ color: c.orange, fontWeight: 'bold' }}>+</Text>
+          <Text style={{ color: c.texte, fontSize: 16 }}>+</Text>
         </Pressable>
       </ScrollView>
 
-      <Pressable
-        onPress={() => router.push('/pro')}
-        style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          backgroundColor: c.orange,
-          borderRadius: 12,
-          paddingVertical: 12,
-          paddingHorizontal: 16,
-          marginBottom: 16,
-        }}
-      >
-        <Text style={{ color: c.surOrange, fontWeight: 'bold' }}>⭐ Passer en Pro</Text>
-        <Text style={{ color: c.surOrange, fontWeight: 'bold' }}>›</Text>
-      </Pressable>
-
       {ajoutVehicule && (
-        <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
+        <View style={{ flexDirection: 'row', gap: espace.s, marginBottom: espace.m }}>
           <TextInput
             style={[inputStyle, { flex: 1, marginBottom: 0 }]}
-            placeholder="Nom du véhicule (ex : Utilitaire)"
+            placeholder="Nom du véhicule"
             placeholderTextColor={c.texteDoux}
             value={nomVehiculeTxt}
             onChangeText={setNomVehiculeTxt}
@@ -378,54 +348,58 @@ export default function CarnetScreen() {
             style={{
               backgroundColor: c.orange,
               paddingHorizontal: 18,
-              borderRadius: 8,
+              borderRadius: 10,
               justifyContent: 'center',
             }}
           >
-            <Text style={{ color: c.surOrange, fontWeight: 'bold' }}>OK</Text>
+            <Text style={{ color: c.surOrange, fontWeight: '700' }}>OK</Text>
           </Pressable>
         </View>
       )}
 
-      <View style={{ flexDirection: 'row', gap: 10, marginBottom: 20 }}>
-        <View
-          style={{
-            flex: 1,
-            backgroundColor: c.carteMeilleure,
-            padding: 14,
-            borderRadius: 12,
-            borderLeftWidth: 5,
-            borderLeftColor: c.orange,
-          }}
-        >
-          <Text style={{ color: c.texteDoux }}>Budget ce mois</Text>
-          <Text style={{ color: c.orange, fontSize: 22, fontWeight: 'bold' }}>
+      {/* Bandeau Pro */}
+      <Pressable
+        onPress={() => router.push('/pro')}
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          backgroundColor: c.carte,
+          borderRadius: 12,
+          paddingVertical: 12,
+          paddingHorizontal: espace.m,
+          marginBottom: espace.l,
+        }}
+      >
+        <Text style={{ color: c.texte, ...type.petit, fontWeight: '600' }}>
+          <Text style={{ color: c.orange }}>⭐ </Text>Passer en Pro
+        </Text>
+        <Text style={{ color: c.texteDoux }}>›</Text>
+      </Pressable>
+
+      {/* Chiffres clés */}
+      <View style={{ flexDirection: 'row', gap: espace.s, marginBottom: espace.l }}>
+        <View style={{ flex: 1, backgroundColor: c.carte, padding: espace.m, borderRadius: 14 }}>
+          <Text style={{ color: c.texteDoux, ...type.petit }}>Budget ce mois</Text>
+          <Text style={{ color: c.texte, ...type.montant, marginTop: 2 }}>
             {budgetMois.toFixed(2)} €
           </Text>
         </View>
-        <View
-          style={{
-            flex: 1,
-            backgroundColor: c.carteMeilleure,
-            padding: 14,
-            borderRadius: 12,
-            borderLeftWidth: 5,
-            borderLeftColor: c.orange,
-          }}
-        >
-          <Text style={{ color: c.texteDoux }}>Coût au km</Text>
-          <Text style={{ color: c.orange, fontSize: 22, fontWeight: 'bold' }}>
+        <View style={{ flex: 1, backgroundColor: c.carte, padding: espace.m, borderRadius: 14 }}>
+          <Text style={{ color: c.texteDoux, ...type.petit }}>Coût au km</Text>
+          <Text style={{ color: c.texte, ...type.montant, marginTop: 2 }}>
             {coutKmMoyen !== null ? coutKmMoyen.toFixed(3) + ' €' : '—'}
           </Text>
         </View>
       </View>
 
-      <Text style={{ color: c.texte, fontSize: 18, fontWeight: 'bold', marginBottom: 10 }}>
+      {/* Ajouter un plein */}
+      <Text style={{ color: c.texte, ...type.section, marginBottom: espace.s }}>
         Ajouter un plein
       </Text>
       <TextInput
         style={inputStyle}
-        placeholder="Litres mis (ex : 42.5)"
+        placeholder="Litres mis"
         placeholderTextColor={c.texteDoux}
         keyboardType="numeric"
         value={litresTxt}
@@ -433,7 +407,7 @@ export default function CarnetScreen() {
       />
       <TextInput
         style={inputStyle}
-        placeholder="Prix payé en € (ex : 98.20)"
+        placeholder="Prix payé en €"
         placeholderTextColor={c.texteDoux}
         keyboardType="numeric"
         value={prixTxt}
@@ -441,7 +415,7 @@ export default function CarnetScreen() {
       />
       <TextInput
         style={inputStyle}
-        placeholder="Kilométrage au compteur (ex : 84500)"
+        placeholder="Kilométrage au compteur"
         placeholderTextColor={c.texteDoux}
         keyboardType="numeric"
         value={kmTxt}
@@ -451,58 +425,60 @@ export default function CarnetScreen() {
         onPress={ajouter}
         style={{
           backgroundColor: c.orange,
-          padding: 14,
+          paddingVertical: 14,
           borderRadius: 10,
           alignItems: 'center',
-          marginBottom: 8,
+          marginTop: espace.xs,
+          marginBottom: espace.s,
         }}
       >
-        <Text style={{ color: c.surOrange, fontWeight: 'bold', fontSize: 16 }}>Ajouter</Text>
+        <Text style={{ color: c.surOrange, fontWeight: '700', ...type.corps }}>Ajouter</Text>
       </Pressable>
-      <Text style={{ color: c.texteDoux, fontSize: 12, marginBottom: 24 }}>
-        Pour un calcul juste, fais le plein complet à chaque fois. Il faut au moins 2 pleins pour
-        voir le coût au km.
+      <Text style={{ color: c.texteDoux, ...type.petit, marginBottom: espace.l }}>
+        Fais le plein complet à chaque fois pour un calcul juste. 2 pleins minimum pour voir le
+        coût au km.
       </Text>
 
-      <Text style={{ color: c.texte, fontSize: 18, fontWeight: 'bold', marginBottom: 10 }}>
-        Historique
-      </Text>
+      {/* Historique */}
+      <Text style={{ color: c.texte, ...type.section, marginBottom: espace.s }}>Historique</Text>
       {details.length === 0 && (
-        <Text style={{ color: c.texteDoux }}>Aucun plein pour l'instant.</Text>
+        <Text style={{ color: c.texteDoux, ...type.corps }}>Aucun plein pour l'instant.</Text>
       )}
       {details.map((d) => (
         <View
           key={d.id}
           style={{
             backgroundColor: c.carte,
-            padding: 14,
-            borderRadius: 10,
-            marginBottom: 10,
-            borderWidth: 1,
-            borderColor: c.bordure,
+            padding: espace.m,
+            borderRadius: 14,
+            marginBottom: espace.s,
           }}
         >
-          <Text style={{ color: c.texte, fontWeight: 'bold' }}>
-            {new Date(d.date).toLocaleDateString('fr-FR')} · {d.km} km
-          </Text>
-          <Text style={{ color: c.texteDoux }}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+            <Text style={{ color: c.texte, ...type.corpsGras }}>
+              {new Date(d.date).toLocaleDateString('fr-FR')}
+            </Text>
+            <Text style={{ color: c.texteDoux, ...type.petit }}>{d.km} km</Text>
+          </View>
+          <Text style={{ color: c.texteDoux, ...type.petit, marginTop: 2 }}>
             {d.litres} L · {d.prix.toFixed(2)} €
           </Text>
           {d.coutKm !== null && d.conso !== null && (
-            <Text style={{ color: c.orange, fontWeight: 'bold' }}>
-              {d.kmParcourus} km parcourus · {d.conso.toFixed(1)} L/100km ·{' '}
-              {d.coutKm.toFixed(3)} €/km
+            <Text style={{ color: c.orange, ...type.petit, fontWeight: '700', marginTop: 4 }}>
+              {d.kmParcourus} km · {d.conso.toFixed(1)} L/100km · {d.coutKm.toFixed(3)} €/km
             </Text>
           )}
-          <Pressable onPress={() => supprimer(d.id)} style={{ marginTop: 8 }}>
-            <Text style={{ color: c.danger }}>Supprimer</Text>
+          <Pressable onPress={() => supprimer(d.id)} style={{ marginTop: espace.s }}>
+            <Text style={{ color: c.danger, ...type.petit }}>Supprimer</Text>
           </Pressable>
         </View>
       ))}
 
       {vehicules.length > 1 && (
-        <Pressable onPress={supprimerVehicule} style={{ marginTop: 16, alignItems: 'center' }}>
-          <Text style={{ color: c.danger }}>Supprimer le véhicule « {actif.nom} »</Text>
+        <Pressable onPress={supprimerVehicule} style={{ marginTop: espace.m, alignItems: 'center' }}>
+          <Text style={{ color: c.danger, ...type.petit }}>
+            Supprimer le véhicule « {actif.nom} »
+          </Text>
         </Pressable>
       )}
     </ScrollView>

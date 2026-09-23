@@ -1,4 +1,4 @@
-import { usePalette } from '@/constants/palette';
+import { espace, type, usePalette } from '@/constants/palette';
 import { CARBURANTS, RAYONS, useStations } from '@/hooks/use-stations';
 import {
   ActivityIndicator,
@@ -52,93 +52,113 @@ export default function HomeScreen() {
     color: c.texte,
     borderRadius: 8,
     paddingVertical: 6,
-    paddingHorizontal: 10,
-    width: 70,
+    paddingHorizontal: 8,
+    width: 52,
     textAlign: 'center' as const,
+    ...type.corpsGras,
   };
 
+  const pastille = (selected: boolean) => ({
+    paddingVertical: 7,
+    paddingHorizontal: 14,
+    borderRadius: 18,
+    backgroundColor: selected ? c.orange : c.carte,
+  });
+
   return (
-    <View style={{ flex: 1, backgroundColor: c.fond, paddingTop: 60 }}>
+    <View style={{ flex: 1, backgroundColor: c.fond }}>
+      {/* En-tête */}
+      <View
+        style={{
+          paddingTop: 56,
+          paddingHorizontal: espace.l,
+          paddingBottom: espace.m,
+        }}
+      >
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+          }}
+        >
+          <Text style={{ color: c.texte, ...type.titre }}>Stations</Text>
+          <Pressable
+            onPress={actualiser}
+            hitSlop={10}
+            style={{
+              width: 34,
+              height: 34,
+              borderRadius: 17,
+              backgroundColor: c.carte,
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Text style={{ fontSize: 15, color: c.texte }}>{loading ? '···' : '↻'}</Text>
+          </Pressable>
+        </View>
+      </View>
+
+      {/* Carburant */}
+      <View
+        style={{
+          flexDirection: 'row',
+          gap: espace.s,
+          paddingHorizontal: espace.l,
+          marginBottom: espace.m,
+        }}
+      >
+        {CARBURANTS.map((item) => {
+          const selected = item.champ === carburant.champ;
+          return (
+            <Pressable key={item.champ} onPress={() => setCarburant(item)} style={pastille(selected)}>
+              <Text
+                style={{
+                  color: selected ? c.surOrange : c.texte,
+                  ...type.petit,
+                  fontWeight: selected ? '700' : '500',
+                }}
+              >
+                {item.label}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
+
+      {/* Réglages : conso, plein, rayon */}
       <View
         style={{
           flexDirection: 'row',
           alignItems: 'center',
-          justifyContent: 'space-between',
-          paddingHorizontal: 12,
+          flexWrap: 'wrap',
+          paddingHorizontal: espace.l,
+          gap: espace.s,
+          marginBottom: espace.m,
         }}
       >
-        <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap', flex: 1 }}>
-          {CARBURANTS.map((item) => {
-            const selected = item.champ === carburant.champ;
-            return (
-              <Pressable
-                key={item.champ}
-                onPress={() => setCarburant(item)}
-                style={{
-                  paddingVertical: 8,
-                  paddingHorizontal: 14,
-                  borderRadius: 20,
-                  backgroundColor: selected ? c.orange : c.carte,
-                }}
-              >
-                <Text style={{ color: selected ? c.surOrange : c.texte, fontWeight: 'bold' }}>
-                  {item.label}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
-        <Pressable
-          onPress={actualiser}
-          style={{
-            width: 40,
-            height: 40,
-            borderRadius: 20,
-            backgroundColor: c.carte,
-            alignItems: 'center',
-            justifyContent: 'center',
-            marginLeft: 8,
-          }}
-        >
-          <Text style={{ fontSize: 18 }}>{loading ? '…' : '↻'}</Text>
-        </Pressable>
-      </View>
+        <TextInput style={inputStyle} value={consoTxt} onChangeText={setConsoTxt} keyboardType="numeric" />
+        <Text style={{ color: c.texteDoux, ...type.petit }}>L/100km</Text>
 
-      <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, gap: 8, marginTop: 10 }}>
-        <Text style={{ color: c.texteDoux }}>Conso</Text>
-        <TextInput
-          style={inputStyle}
-          value={consoTxt}
-          onChangeText={setConsoTxt}
-          keyboardType="numeric"
-        />
-        <Text style={{ color: c.texteDoux }}>L/100km</Text>
-        <Text style={{ color: c.texteDoux, marginLeft: 12 }}>Plein</Text>
-        <TextInput
-          style={inputStyle}
-          value={litresTxt}
-          onChangeText={setLitresTxt}
-          keyboardType="numeric"
-        />
-        <Text style={{ color: c.texteDoux }}>L</Text>
-      </View>
+        <View style={{ width: 1, height: 16, backgroundColor: c.bordure, marginHorizontal: espace.xs }} />
 
-      <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, gap: 8, marginTop: 10 }}>
-        <Text style={{ color: c.texteDoux }}>Rayon</Text>
+        <TextInput style={inputStyle} value={litresTxt} onChangeText={setLitresTxt} keyboardType="numeric" />
+        <Text style={{ color: c.texteDoux, ...type.petit }}>L de plein</Text>
+
+        <View style={{ width: 1, height: 16, backgroundColor: c.bordure, marginHorizontal: espace.xs }} />
+
         {RAYONS.map((r) => {
           const selected = r === rayon;
           return (
-            <Pressable
-              key={r}
-              onPress={() => setRayon(r)}
-              style={{
-                paddingVertical: 6,
-                paddingHorizontal: 12,
-                borderRadius: 16,
-                backgroundColor: selected ? c.orange : c.carte,
-              }}
-            >
-              <Text style={{ color: selected ? c.surOrange : c.texte, fontWeight: 'bold' }}>
+            <Pressable key={r} onPress={() => setRayon(r)}>
+              <Text
+                style={{
+                  color: selected ? c.orange : c.texteDoux,
+                  ...type.petit,
+                  fontWeight: selected ? '700' : '500',
+                }}
+              >
                 {r} km
               </Text>
             </Pressable>
@@ -147,55 +167,92 @@ export default function HomeScreen() {
       </View>
 
       {loading ? (
-        <ActivityIndicator color={c.orange} style={{ marginTop: 40 }} />
+        <ActivityIndicator color={c.orange} style={{ marginTop: espace.xl }} />
       ) : message ? (
-        <Text style={{ color: c.texte, fontSize: 16, textAlign: 'center', padding: 24 }}>
+        <Text
+          style={{
+            color: c.texteDoux,
+            ...type.corps,
+            textAlign: 'center',
+            padding: espace.l,
+          }}
+        >
           {message}
         </Text>
       ) : (
         <FlatList
-          style={{ marginTop: 12 }}
           data={liste}
           keyExtractor={(s) => String(s.id)}
+          contentContainerStyle={{ paddingHorizontal: espace.l, paddingBottom: espace.xl }}
+          ItemSeparatorComponent={() => <View style={{ height: espace.s }} />}
           renderItem={({ item, index }) => (
             <View
               style={{
-                padding: 16,
-                borderBottomWidth: 1,
-                borderColor: c.bordure,
-                backgroundColor: index === 0 ? c.carteMeilleure : c.fond,
-                borderLeftWidth: index === 0 ? 5 : 0,
+                padding: espace.m,
+                borderRadius: 14,
+                backgroundColor: c.carte,
+                borderLeftWidth: index === 0 ? 3 : 0,
                 borderLeftColor: c.orange,
               }}
             >
-              {index === 0 && (
-                <Text style={{ color: c.orange, fontWeight: 'bold', marginBottom: 4 }}>
-                  MEILLEUR CHOIX
-                </Text>
-              )}
-              <Text style={{ fontWeight: 'bold', color: c.texte, fontSize: 18 }}>{item.ville}</Text>
-              <Text style={{ color: c.texteDoux }}>{item.adresse}</Text>
-              <Text style={{ color: c.texteDoux }}>{item.distance.toFixed(1)} km</Text>
-              <Text style={{ color: c.texte, fontSize: 16, marginTop: 4 }}>
-                {carburant.label} : {item.prix} €/L
-              </Text>
-              <Text style={{ color: c.orange, fontSize: 17, fontWeight: 'bold' }}>
-                Coût total : {item.coutTotal.toFixed(2)} €
-              </Text>
-              <Pressable
-                onPress={() =>
-                  ouvrirItineraire(item.geom.lat, item.geom.lon, `${item.ville}, ${item.adresse}`)
-                }
+              <View
                 style={{
-                  backgroundColor: c.orange,
-                  paddingVertical: 10,
-                  borderRadius: 10,
-                  alignItems: 'center',
-                  marginTop: 10,
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
+                  alignItems: 'flex-start',
                 }}
               >
-                <Text style={{ color: c.surOrange, fontWeight: 'bold' }}>Itinéraire</Text>
-              </Pressable>
+                <View style={{ flex: 1, paddingRight: espace.s }}>
+                  {index === 0 && (
+                    <Text
+                      style={{
+                        color: c.orange,
+                        ...type.petit,
+                        fontWeight: '700',
+                        marginBottom: 2,
+                      }}
+                    >
+                      MEILLEUR CHOIX
+                    </Text>
+                  )}
+                  <Text style={{ color: c.texte, ...type.section }}>{item.ville}</Text>
+                  <Text style={{ color: c.texteDoux, ...type.petit, marginTop: 1 }}>
+                    {item.adresse} · {item.distance.toFixed(1)} km
+                  </Text>
+                </View>
+                <View style={{ alignItems: 'flex-end' }}>
+                  <Text style={{ color: c.texte, ...type.montant }}>{item.prix} €</Text>
+                  <Text style={{ color: c.texteDoux, ...type.petit }}>/L</Text>
+                </View>
+              </View>
+
+              <View
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  marginTop: espace.m,
+                }}
+              >
+                <Text style={{ color: c.texteDoux, ...type.petit }}>
+                  Coût total : <Text style={{ color: c.texte, fontWeight: '700' }}>{item.coutTotal.toFixed(2)} €</Text>
+                </Text>
+                <Pressable
+                  onPress={() =>
+                    ouvrirItineraire(item.geom.lat, item.geom.lon, `${item.ville}, ${item.adresse}`)
+                  }
+                  style={{
+                    backgroundColor: c.orange,
+                    paddingVertical: 8,
+                    paddingHorizontal: 16,
+                    borderRadius: 10,
+                  }}
+                >
+                  <Text style={{ color: c.surOrange, ...type.petit, fontWeight: '700' }}>
+                    Itinéraire
+                  </Text>
+                </Pressable>
+              </View>
             </View>
           )}
         />
