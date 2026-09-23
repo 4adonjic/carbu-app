@@ -2,6 +2,7 @@ import { usePalette } from '@/constants/palette';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { File, Paths } from 'expo-file-system';
 import * as LegacyFS from 'expo-file-system/legacy';
+import { router } from 'expo-router';
 import * as Sharing from 'expo-sharing';
 import { useEffect, useState } from 'react';
 import {
@@ -345,6 +346,23 @@ export default function CarnetScreen() {
         </Pressable>
       </ScrollView>
 
+      <Pressable
+        onPress={() => router.push('/pro')}
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          backgroundColor: c.orange,
+          borderRadius: 12,
+          paddingVertical: 12,
+          paddingHorizontal: 16,
+          marginBottom: 16,
+        }}
+      >
+        <Text style={{ color: c.surOrange, fontWeight: 'bold' }}>⭐ Passer en Pro</Text>
+        <Text style={{ color: c.surOrange, fontWeight: 'bold' }}>›</Text>
+      </Pressable>
+
       {ajoutVehicule && (
         <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
           <TextInput
@@ -489,4 +507,4 @@ export default function CarnetScreen() {
       )}
     </ScrollView>
   );
-} 
+}
