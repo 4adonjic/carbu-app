@@ -1,13 +1,13 @@
-import { usePalette } from '@/constants/palette';
+import { espace, type, usePalette } from '@/constants/palette';
 import { CARBURANTS, useStations } from '@/hooks/use-stations';
 import {
-    ActivityIndicator,
-    Alert,
-    Linking,
-    Platform,
-    Pressable,
-    Text,
-    View,
+  ActivityIndicator,
+  Alert,
+  Linking,
+  Platform,
+  Pressable,
+  Text,
+  View,
 } from 'react-native';
 import { WebView } from 'react-native-webview';
 
@@ -131,33 +131,42 @@ export default function CarteScreen() {
       : null;
 
   return (
-    <View style={{ flex: 1, backgroundColor: c.fond, paddingTop: 60 }}>
-      <View style={{ flexDirection: 'row', padding: 12, gap: 8 }}>
-        {CARBURANTS.map((item) => {
-          const selected = item.champ === carburant.champ;
-          return (
-            <Pressable
-              key={item.champ}
-              onPress={() => setCarburant(item)}
-              style={{
-                paddingVertical: 8,
-                paddingHorizontal: 14,
-                borderRadius: 20,
-                backgroundColor: selected ? c.orange : c.carte,
-              }}
-            >
-              <Text style={{ color: selected ? c.surOrange : c.texte, fontWeight: 'bold' }}>
-                {item.label}
-              </Text>
-            </Pressable>
-          );
-        })}
+    <View style={{ flex: 1, backgroundColor: c.fond }}>
+      <View style={{ paddingTop: 56, paddingHorizontal: espace.l, paddingBottom: espace.m }}>
+        <Text style={{ color: c.texte, ...type.titre, marginBottom: espace.m }}>Carte</Text>
+        <View style={{ flexDirection: 'row', gap: espace.s }}>
+          {CARBURANTS.map((item) => {
+            const selected = item.champ === carburant.champ;
+            return (
+              <Pressable
+                key={item.champ}
+                onPress={() => setCarburant(item)}
+                style={{
+                  paddingVertical: 7,
+                  paddingHorizontal: 14,
+                  borderRadius: 18,
+                  backgroundColor: selected ? c.orange : c.carte,
+                }}
+              >
+                <Text
+                  style={{
+                    color: selected ? c.surOrange : c.texte,
+                    ...type.petit,
+                    fontWeight: selected ? '700' : '500',
+                  }}
+                >
+                  {item.label}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
       </View>
 
       {loading ? (
-        <ActivityIndicator color={c.orange} style={{ marginTop: 40 }} />
+        <ActivityIndicator color={c.orange} style={{ marginTop: espace.xl }} />
       ) : message || !mapHtml ? (
-        <Text style={{ color: c.texte, fontSize: 16, textAlign: 'center', padding: 24 }}>
+        <Text style={{ color: c.texteDoux, ...type.corps, textAlign: 'center', padding: espace.l }}>
           {message || 'Aucune station à afficher.'}
         </Text>
       ) : (

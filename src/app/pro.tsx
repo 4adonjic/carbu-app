@@ -1,4 +1,4 @@
-import { usePalette } from '@/constants/palette';
+import { espace, type, usePalette } from '@/constants/palette';
 import { router } from 'expo-router';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 
@@ -15,20 +15,20 @@ export default function ProScreen() {
   return (
     <ScrollView
       style={{ flex: 1, backgroundColor: c.fond }}
-      contentContainerStyle={{ padding: 20, paddingTop: 70, paddingBottom: 60 }}
+      contentContainerStyle={{ padding: espace.l, paddingTop: 56, paddingBottom: espace.xl }}
     >
-      <Pressable onPress={() => router.back()} style={{ marginBottom: 16 }}>
-        <Text style={{ color: c.orange, fontWeight: 'bold', fontSize: 16 }}>‹ Retour</Text>
+      <Pressable onPress={() => router.back()} hitSlop={8} style={{ marginBottom: espace.l }}>
+        <Text style={{ color: c.texteDoux, ...type.corps }}>‹ Retour</Text>
       </Pressable>
 
-      <Text style={{ fontSize: 40, textAlign: 'center' }}>⛽</Text>
+      <Text style={{ fontSize: 34, textAlign: 'center' }}>⛽</Text>
       <Text
         style={{
           color: c.texte,
-          fontSize: 26,
-          fontWeight: 'bold',
+          ...type.titre,
+          fontSize: 24,
           textAlign: 'center',
-          marginTop: 8,
+          marginTop: espace.s,
         }}
       >
         Le Bon Plein Pro
@@ -36,11 +36,11 @@ export default function ProScreen() {
       <Text
         style={{
           color: c.texteDoux,
-          fontSize: 15,
+          ...type.corps,
           textAlign: 'center',
-          marginTop: 6,
-          marginBottom: 28,
-          paddingHorizontal: 10,
+          marginTop: espace.xs,
+          marginBottom: espace.xl,
+          paddingHorizontal: espace.m,
         }}
       >
         Pensé pour les livreurs, VTC et gros rouleurs qui veulent suivre leurs frais au kilomètre
@@ -52,39 +52,35 @@ export default function ProScreen() {
           key={a.titre}
           style={{
             flexDirection: 'row',
-            gap: 14,
+            gap: espace.m,
             backgroundColor: c.carte,
             borderRadius: 14,
-            padding: 16,
-            marginBottom: 12,
-            borderWidth: 1,
-            borderColor: c.bordure,
+            padding: espace.m,
+            marginBottom: espace.s,
           }}
         >
-          <Text style={{ fontSize: 26 }}>{a.icone}</Text>
+          <Text style={{ fontSize: 22 }}>{a.icone}</Text>
           <View style={{ flex: 1 }}>
-            <Text style={{ color: c.texte, fontWeight: 'bold', fontSize: 16 }}>{a.titre}</Text>
-            <Text style={{ color: c.texteDoux, marginTop: 2 }}>{a.texte}</Text>
+            <Text style={{ color: c.texte, ...type.corpsGras }}>{a.titre}</Text>
+            <Text style={{ color: c.texteDoux, ...type.petit, marginTop: 2 }}>{a.texte}</Text>
           </View>
         </View>
       ))}
 
       <View
         style={{
-          backgroundColor: c.carteMeilleure,
+          backgroundColor: c.carte,
           borderRadius: 16,
-          padding: 20,
-          marginTop: 16,
+          padding: espace.l,
+          marginTop: espace.m,
           alignItems: 'center',
-          borderLeftWidth: 5,
-          borderLeftColor: c.orange,
         }}
       >
-        <Text style={{ color: c.texteDoux }}>Abonnement mensuel</Text>
-        <Text style={{ color: c.orange, fontSize: 32, fontWeight: 'bold', marginTop: 4 }}>
-          2,99 €<Text style={{ fontSize: 16, fontWeight: 'normal' }}> / mois</Text>
+        <Text style={{ color: c.texteDoux, ...type.petit }}>Abonnement mensuel</Text>
+        <Text style={{ color: c.texte, fontSize: 32, fontWeight: '700', marginTop: 4 }}>
+          2,99 €<Text style={{ fontSize: 15, fontWeight: '400', color: c.texteDoux }}> / mois</Text>
         </Text>
-        <Text style={{ color: c.texteDoux, fontSize: 12, marginTop: 4 }}>
+        <Text style={{ color: c.texteDoux, ...type.petit, marginTop: 4 }}>
           Sans engagement, annulable à tout moment
         </Text>
       </View>
@@ -95,14 +91,12 @@ export default function ProScreen() {
           borderRadius: 12,
           paddingVertical: 16,
           alignItems: 'center',
-          marginTop: 20,
+          marginTop: espace.l,
         }}
       >
-        <Text style={{ color: c.surOrange, fontWeight: 'bold', fontSize: 17 }}>
-          Passer en Pro
-        </Text>
+        <Text style={{ color: c.surOrange, fontWeight: '700', fontSize: 16 }}>Passer en Pro</Text>
       </Pressable>
-      <Text style={{ color: c.texteDoux, fontSize: 11, textAlign: 'center', marginTop: 10 }}>
+      <Text style={{ color: c.texteDoux, ...type.petit, textAlign: 'center', marginTop: espace.s }}>
         Le paiement n'est pas encore activé, ceci est un aperçu.
       </Text>
     </ScrollView>
