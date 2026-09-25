@@ -19,7 +19,7 @@ Aperçu
 
 (ajoute ici 1 ou 2 captures d'écran de l'app, par exemple :)
 
-![Écran Stations](assets/screenshot-stations.png)
+![Écran Stations](assets/Screenshot_2026-09-23-10-12-12-189_com.carbuapp.mobile.jpg)
 ![Écran Carnet](assets/screenshot-carnet.png)
 Contexte du projet
 
