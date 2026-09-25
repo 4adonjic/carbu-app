@@ -20,7 +20,7 @@ Aperçu
 (ajoute ici 1 ou 2 captures d'écran de l'app, par exemple :)
 
 ![Écran Stations](assets/Screenshot_2026-09-23-10-12-12-189_com.carbuapp.mobile.jpg)
-![Écran Carnet](assets/screenshot-carnet.png)
+![Écran Carnet](assets/Screenshot_2026-09-23-10-26-58-780_com.carbuapp.mobile.jpg)
 Contexte du projet
 
 Projet personnel développé pour approfondir React Native et Expo, autour d'une vraie problématique : trouver rapidement la station la moins chère et suivre ses dépenses de carburant.
