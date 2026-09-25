@@ -1,56 +1,30 @@
-# Welcome to your Expo app 👋
+Le Bon Plein 🚗⛽
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Application mobile qui aide les conducteurs (particuliers, livreurs, VTC) à trouver les stations-service les moins chères autour d'eux et à suivre leurs dépenses de carburant.
 
-## Get started
+Fonctionnalités
+Stations : recherche des stations-service à proximité par géolocalisation, filtrées par type de carburant, avec le prix affiché pour chacune
+Carte : visualisation des stations sur une carte plein écran, avec accès direct à l'itinéraire (Google Maps / Waze / Plans)
+Calcul de coût : estimation du coût total d'un plein en fonction du trajet et de la consommation du véhicule
+Carnet de pleins : historique des pleins effectués, export possible au format CSV
+Multi-véhicules : gestion de plusieurs véhicules avec leurs propres réglages
+Entretien : rappels d'entretien basés sur le kilométrage
+Réglages personnalisés : carburant préféré, consommation, rayon de recherche, mémorisés entre les sessions
+Technologies utilisées
+React Native avec Expo
+TypeScript
+Géolocalisation native
+Stockage local des données (hors ligne)
+Aperçu
 
-1. Install dependencies
+(ajoute ici 1 ou 2 captures d'écran de l'app, par exemple :)
 
-   ```bash
-   npm install
-   ```
+![Écran Stations](assets/screenshot-stations.png)
+![Écran Carnet](assets/screenshot-carnet.png)
+Contexte du projet
 
-2. Start the app
+Projet personnel développé pour approfondir React Native et Expo, autour d'une vraie problématique : trouver rapidement la station la moins chère et suivre ses dépenses de carburant.
 
-   ```bash
-   npx expo start
-   ```
+Licence
 
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
-```
-
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
-
-### Other setup steps
-
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
-
-## Learn more
-
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+MIT
